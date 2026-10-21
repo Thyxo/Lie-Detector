@@ -1,0 +1,5 @@
+ios/build/
+ios/Payload/
+ios/*.ipa
+ios/MindTrace.xcodeproj/
+.DS_Store
