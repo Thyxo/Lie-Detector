@@ -13,16 +13,13 @@ struct SecretPanel: View {
             Form {
                 statusSection
                 sensitivitySection
-                decisionSection
                 modeSection
                 looksSection
                 advancedSection
                 Section {
                     Button(s.tr("Nulstil til start", "Back to start")) { engine.resetToStart() }
-                    Button(s.tr("PANIK – kun ærlig sensor", "PANIC – honest sensor only"), role: .destructive) { engine.panic() }
                 } footer: {
-                    Text(s.tr("Åbn menuen: 5 hurtige tryk øverst til højre. Panik: hold nederste venstre hjørne på startskærmen i ¾ s.",
-                              "Open menu: 5 quick taps top right. Panic: hold the bottom-left corner of the start screen for ¾ s."))
+                    Text(s.tr("Åbn menuen: 5 hurtige tryk øverst til højre.", "Open menu: 5 quick taps top right."))
                 }
             }
             .navigationTitle("MindTrace")
@@ -53,7 +50,6 @@ struct SecretPanel: View {
             HStack {
                 Text(badge.text).font(.headline).foregroundStyle(badge.color)
                 Spacer()
-                if let a = engine.armed { Text(s.tr("Klar: ", "Armed: ") + s.word(a)).foregroundStyle(.secondary) }
             }
             LiveMeter(value: engine.liveAnomaly ?? 0, peak: engine.liveMax, threshold: s.threshold, live: engine.sensorLive)
             Button(s.tr("Nulstil måling", "Reset reading")) { engine.resetLive() }
@@ -92,54 +88,43 @@ struct SecretPanel: View {
                 LearnView().environmentObject(engine).environmentObject(s)
             }
         } header: { Text(s.tr("Følsomhed", "Sensitivity")) } footer: {
-            Text(s.tr("Udslag under tærsklen = ingen magnet. Siger den magnet for tit: skru op. Opdager den ikke mønten: skru ned – eller brug \"Lær min mønt\".",
-                      "Signals below the threshold = no magnet. Too many false magnets: raise it. Misses the coin: lower it – or use \"Learn my coin\"."))
+            Text(s.tr("Udslag under tærsklen = ingen mønt (1 bump). Vibrerer den \"mønt\" for tit: skru op. Opdager den ikke mønten: skru ned – eller brug \"Lær min mønt\".",
+                      "Signals below the threshold = no coin (1 buzz). Too many false coins: raise it. Misses the coin: lower it – or use \"Learn my coin\"."))
         }
     }
 
-    // MARK: Afgørelse
-    private var decisionSection: some View {
-        Section(s.tr("Afgørelse", "Decision")) {
-            Toggle(s.tr("Automatisk sensor", "Automatic sensor"), isOn: $s.autoSensor)
-            Picker(s.tr("Magnet betyder", "Magnet means"), selection: $s.magnetMeans) {
-                Text(s.word(.falsk)).tag(Verdict.falsk)
-                Text(s.word(.sandt)).tag(Verdict.sandt)
-            }
-            Toggle(s.tr("Volumenknapper (op = Sandt, ned = Falsk)", "Volume buttons (up = True, down = False)"), isOn: $s.volumeButtons)
-        }
-    }
-
-    // MARK: Tilstand
+    // MARK: Vibration + tilstand
     private var modeSection: some View {
         Section {
             Picker(s.tr("Tilstand", "Mode"), selection: $s.mode) {
                 Text("Normal").tag(AppMode.normal)
-                Text(s.tr("Hemmelig vibration", "Secret vibration")).tag(AppMode.hidden)
+                Text(s.tr("Hemmelig", "Secret")).tag(AppMode.hidden)
             }
             .pickerStyle(.segmented)
+            VStack(alignment: .leading) {
+                Text(String(format: s.tr("Vibration starter efter %.1f s", "Vibration starts after %.1f s"), s.vibDelay))
+                Slider(value: $s.vibDelay, in: 0...5, step: 0.5)
+            }
+            HStack {
+                Button(s.tr("Test: mønt (2)", "Test: coin (2)")) { engine.haptics.pulses(2) }
+                Spacer()
+                Button(s.tr("Test: ingen (1)", "Test: none (1)")) { engine.haptics.pulses(1) }
+            }
+            .buttonStyle(.borderless)
             if s.mode == .hidden {
-                Picker(s.tr("Gentag", "Repeat"), selection: $s.vibRepeat) {
-                    Text(s.tr("5 gange", "5 times")).tag(VibRepeat.five)
-                    Text(s.tr("Til jeg trykker", "Until I tap")).tag(VibRepeat.untilTap)
-                }
                 PhotosPicker(selection: $photo, matching: .images) {
                     Text(s.hasBackground ? s.tr("Skift billede", "Change image") : s.tr("Vælg billede (fx din hjemmeskærm)", "Choose image (e.g. your home screen)"))
                 }
                 if s.hasBackground {
                     Button(s.tr("Brug sort skærm", "Use black screen")) { BackgroundStore.clear(); s.hasBackground = false }
                 }
-                HStack {
-                    Button(s.tr("Test Falsk (1)", "Test False (1)")) { engine.haptics.pulses(1) }
-                    Spacer()
-                    Button(s.tr("Test Sandt (2)", "Test True (2)")) { engine.haptics.pulses(2) }
-                }
-                .buttonStyle(.borderless)
             }
-        } header: { Text(s.tr("Tilstand", "Mode")) } footer: {
+        } header: { Text(s.tr("Vibration og tilstand", "Vibration and mode")) } footer: {
             Text(s.mode == .hidden
-                 ? s.tr("Tryk på skærmen for at scanne. Telefonen vibrerer svaret til dig: 1 gang = Falsk, 2 gange = Sandt, med 1 sekunds pause. Tryk igen for at stoppe.",
-                        "Tap the screen to scan. The phone buzzes the answer to you: 1 = False, 2 = True, with a 1 second pause. Tap again to stop.")
-                 : s.tr("Tilskueren ser Tænker og derefter Sandt eller Falsk.", "The spectator sees Thinking, then True or False."))
+                 ? s.tr("Sort skærm (eller dit billede). Tryk for at scanne. Telefonen vibrerer: 2 bump = mønt, 1 bump = ingen mønt – hvert sekund, indtil du trykker igen.",
+                        "Black screen (or your image). Tap to scan. The phone buzzes: 2 = coin, 1 = no coin – every second until you tap again.")
+                 : s.tr("Tryk på startskærmen → Tænker. Telefonen vibrerer: 2 bump = mønt, 1 bump = ingen mønt (1 lang = ingen sensordata), hvert sekund. Tilskueren svarer – du trykker volumen op = Sandt, ned = Falsk. Trykker du forkert, så tryk den anden knap.",
+                        "Tap the start screen → Thinking. The phone buzzes: 2 = coin, 1 = no coin (1 long = no sensor data), every second. The spectator answers – you press volume up = True, down = False. Wrong button? Press the other one."))
         }
     }
 
@@ -180,25 +165,11 @@ struct SecretPanel: View {
     private var advancedSection: some View {
         Section {
             DisclosureGroup(s.tr("Avanceret", "Advanced"), isExpanded: $showAdvanced) {
-                VStack(alignment: .leading) {
-                    Text(String(format: s.tr("Tænker mindst %.1f s", "Thinking at least %.1f s"), s.thinkMin))
-                    Slider(value: $s.thinkMin, in: 1...8, step: 0.5)
-                }
-                VStack(alignment: .leading) {
-                    Text(String(format: s.tr("Tænker højst %.1f s", "Thinking at most %.1f s"), s.thinkMax))
-                    Slider(value: $s.thinkMax, in: 1...8, step: 0.5)
-                }
                 Stepper(s.tr("Målinger i træk: \(s.consecutive)", "Samples in a row: \(s.consecutive)"), value: $s.consecutive, in: 1...20)
                 Picker(s.tr("Måling", "Measuring"), selection: $s.sensorMode) {
                     Text(s.tr("Auto (tåler drejning)", "Auto (ignores turning)")).tag(SensorMode.auto)
                     Text(s.tr("Rå (hold roligt)", "Raw (hold still)")).tag(SensorMode.raw)
                 }
-                Picker(s.tr("Uden sensordata", "Without sensor data"), selection: $s.fallback) {
-                    Text(s.word(.sandt)).tag(Verdict.sandt)
-                    Text(s.word(.falsk)).tag(Verdict.falsk)
-                }
-                Toggle(s.tr("Lille vibration ved knaptryk", "Small buzz on button press"), isOn: $s.haptic)
-                Toggle(s.tr("Diskret prik når knap er trykket", "Discreet dot when button pressed"), isOn: $s.dot)
                 HStack { Text(s.tr("Kalibrering", "Calibration")); Spacer(); Text(engine.sensor.accuracy).foregroundStyle(.secondary) }
                 HStack { Text(s.tr("Målinger/s", "Samples/s")); Spacer(); Text("\(engine.sensor.rate)").foregroundStyle(.secondary) }
                 VStack(alignment: .leading, spacing: 6) {

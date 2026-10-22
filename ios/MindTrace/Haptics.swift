@@ -21,6 +21,24 @@ final class Haptics {
 
     func tick() { light.impactOccurred() }
 
+    /// Én lang vibration (ingen sensordata).
+    @discardableResult
+    func long() -> Double {
+        if let engine {
+            do {
+                try engine.start()
+                let e = CHHapticEvent(eventType: .hapticContinuous, parameters: [
+                    CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0),
+                    CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.3),
+                ], relativeTime: 0, duration: 0.8)
+                try engine.makePlayer(with: CHHapticPattern(events: [e], parameters: [])).start(atTime: 0)
+                return 0.8
+            } catch { }
+        }
+        AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+        return 0.5
+    }
+
     /// `count` kraftige bump. Returnerer hvor lang tid mønstret varer (s).
     @discardableResult
     func pulses(_ count: Int) -> Double {

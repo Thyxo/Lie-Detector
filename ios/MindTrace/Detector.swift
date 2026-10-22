@@ -66,6 +66,14 @@ final class Detector {
     private var scan: Scan?
     var isScanning: Bool { scan != nil }
 
+    /// Status midt i en scanning: nil = for få målinger endnu, ellers om udslaget har passeret tærsklen.
+    /// "Låser": når mønten først er fundet, forbliver svaret magnet resten af scanningen.
+    var scanStatus: Bool? {
+        guard let sc = scan, sc.n >= 10 else { return nil }
+        return sc.peak >= threshold
+    }
+    var scanPeak: Double { scan?.peak ?? 0 }
+
     // Live-måling til panelet
     private var liveRef: Vec3?
     private(set) var liveAnomaly: Double?

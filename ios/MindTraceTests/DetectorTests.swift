@@ -94,3 +94,21 @@ final class DetectorTests: XCTestCase {
         XCTAssertNil(Detector.learnedThreshold(noise: 20, coin: 30))
     }
 }
+
+final class ScanStatusTests: XCTestCase {
+    func testStatusLatchesOnceCoinFound() {
+        let d = Detector()
+        d.threshold = 40
+        let e = Vec3(x: 18, y: 2, z: -42)
+        func s(_ m: Vec3 = .zero) -> MagSample { MagSample(raw: e + m, cal: e + m, rot: .identity, gravity: Vec3(x: 0, y: 0, z: -1)) }
+        for _ in 0..<40 { d.push(s()) }
+        d.beginScan()
+        XCTAssertNil(d.scanStatus)                       // for få målinger
+        for _ in 0..<20 { d.push(s()) }
+        XCTAssertEqual(d.scanStatus, false)              // ingen mønt endnu
+        for _ in 0..<10 { d.push(s(Vec3(x: 0, y: 0, z: 200))) }
+        XCTAssertEqual(d.scanStatus, true)               // mønt fundet
+        for _ in 0..<50 { d.push(s()) }
+        XCTAssertEqual(d.scanStatus, true)               // forbliver fundet
+    }
+}

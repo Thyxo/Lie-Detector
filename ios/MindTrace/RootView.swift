@@ -92,30 +92,6 @@ struct StartScreen: View {
             BigWord(text: settings.tr("Sandt eller falsk?", "True or false?"), size: 30)
                 .opacity(0.9)
 
-            // Diskret prik: venstre = Sandt klar, højre = Falsk klar
-            if settings.dot, let a = engine.armed {
-                VStack {
-                    Circle()
-                        .fill(Color(white: 0.12))
-                        .frame(width: 5, height: 5)
-                        .offset(x: a == .sandt ? -8 : 8)
-                        .padding(.top, 70)
-                    Spacer()
-                }
-            }
-
-            // Panik: hold nederste venstre hjørne i ¾ s
-            VStack {
-                Spacer()
-                HStack {
-                    Color.clear
-                        .frame(width: 100, height: 100)
-                        .contentShape(Rectangle())
-                        .onTapGesture { engine.tapStart() }
-                        .onLongPressGesture(minimumDuration: 0.75) { engine.panic() }
-                    Spacer()
-                }
-            }
         }
         .contentShape(Rectangle())
         .onTapGesture { engine.tapStart() }

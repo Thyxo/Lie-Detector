@@ -16,16 +16,18 @@ struct LogEntry: Identifiable {
 
 enum LearnStep: Equatable { case idle, noise, coin, done }
 
-/// Styrer forløbet.
-/// Normal: Start → Tænker (tilfældig tid) → Sandt/Falsk + lyd.
-/// Hemmelig: sort skærm/billede → tryk → scanning → vibration (1 = Falsk, 2 = Sandt).
+/// Rutinen: "Har du mønten i hånden?" – tilskueren svarer ja/nej.
+/// Telefonen afgør IKKE selv. Den vibrerer i performerens hånd:
+///   2 bump = mønt i hånden, 1 bump = ingen mønt, 1 lang = ingen sensordata
+/// gentaget ca. hvert sekund, indtil performeren trykker.
+/// Normal tilstand: Start → tryk → Tænker (+ vibration) → volumen op = Sandt / ned = Falsk.
+/// Hemmelig tilstand: sort skærm/billede → tryk → vibration → tryk igen stopper.
 @MainActor
 final class Engine: ObservableObject {
     @Published private(set) var screen: Screen = .start
-    @Published private(set) var armed: Verdict?
     @Published private(set) var log: [LogEntry] = []
-    @Published var panelOpen = false { didSet { if panelOpen { detector.resetLive(); liveMax = 0 } } }
-    @Published private(set) var hiddenBusy = false   // scanner eller vibrerer i hemmelig tilstand
+    @Published var panelOpen = false { didSet { if panelOpen { stopScan(); resetLive() } } }
+    @Published private(set) var hiddenBusy = false
 
     // Live-visning i panelet
     @Published private(set) var liveAnomaly: Double?
@@ -47,9 +49,9 @@ final class Engine: ObservableObject {
     let haptics = Haptics()
 
     private var bag = Set<AnyCancellable>()
-    private var token = 0
-    private var buzzToken = 0
+    private var scanToken = 0
     private var lastPublish = Date.distantPast
+    private let maxBuzzRounds = 120   // sikkerhed: stopper efter ca. 2 minutter
 
     init(settings: AppSettings) {
         self.settings = settings
@@ -63,8 +65,8 @@ final class Engine: ObservableObject {
         settings.$sensorMode.sink { [weak self] in self?.detector.tracker.mode = $0; self?.detector.resetLive() }.store(in: &bag)
         settings.$mode.dropFirst().sink { [weak self] _ in self?.resetToStart() }.store(in: &bag)
 
-        volume.onUp = { [weak self] in self?.volumePressed(.sandt) }
-        volume.onDown = { [weak self] in self?.volumePressed(.falsk) }
+        volume.onUp = { [weak self] in self?.reveal(.sandt) }
+        volume.onDown = { [weak self] in self?.reveal(.falsk) }
 
         Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
             .sink { [weak self] _ in
@@ -93,24 +95,30 @@ final class Engine: ObservableObject {
 
     func resetLive() { detector.resetLive(); liveMax = 0; liveAnomaly = 0 }
 
-    private var thinkDuration: Double {
-        let lo = settings.thinkMin, hi = max(settings.thinkMin, settings.thinkMax)
-        return Double.random(in: lo...hi)
-    }
-
     // MARK: Normal tilstand
     func tapStart() {
         guard screen == .start, !panelOpen else { return }
-        token += 1
-        let my = token
-        detector.beginScan()
         screen = .thinking
-        DispatchQueue.main.asyncAfter(deadline: .now() + thinkDuration) { [weak self] in
-            guard let self, self.token == my, self.screen == .thinking else { return }
-            let v = self.decide()
-            self.screen = .result(v)
-            if self.settings.sound { self.sounds.play(v) }
+        startScan()
+    }
+
+    /// Volumenknap: op = Sandt, ned = Falsk. Virker på Tænker- og resultatskærmen (kan rettes).
+    private func reveal(_ v: Verdict) {
+        guard !panelOpen, settings.mode == .normal else { return }
+        switch screen {
+        case .start:
+            return
+        case .thinking:
+            let peak = detector.scanPeak
+            let status = detector.scanStatus
+            stopScan()
+            addLog(logText(v, status: status, peak: peak))
+        case .result(let old):
+            if old == v { return }
+            addLog(settings.tr("Rettet til \(settings.word(v))", "Changed to \(settings.word(v))"))
         }
+        screen = .result(v)
+        if settings.sound { sounds.play(v) }
     }
 
     func tapResult() {
@@ -118,75 +126,59 @@ final class Engine: ObservableObject {
         screen = .start
     }
 
-    // MARK: Hemmelig vibrationstilstand
+    // MARK: Hemmelig tilstand
     func tapHidden() {
         guard !panelOpen else { return }
-        if hiddenBusy { stopBuzz(); return }
-        token += 1
-        let my = token
-        hiddenBusy = true
-        detector.beginScan()
-        DispatchQueue.main.asyncAfter(deadline: .now() + thinkDuration) { [weak self] in
-            guard let self, self.token == my, self.hiddenBusy else { return }
-            let v = self.decide()
-            self.buzz(v, round: 0)
-        }
-    }
-
-    private func buzz(_ v: Verdict, round: Int) {
-        buzzToken += 1
-        let my = buzzToken
-        let length = haptics.pulses(v == .sandt ? 2 : 1)
-        let maxRounds = settings.vibRepeat == .five ? 5 : Int.max
-        guard round + 1 < maxRounds else {
-            DispatchQueue.main.asyncAfter(deadline: .now() + length) { [weak self] in
-                if self?.buzzToken == my { self?.hiddenBusy = false }
-            }
+        if hiddenBusy {
+            let peak = detector.scanPeak
+            let status = detector.scanStatus
+            stopScan()
+            addLog(logText(nil, status: status, peak: peak))
             return
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + length + 1.0) { [weak self] in
-            guard let self, self.buzzToken == my, self.hiddenBusy else { return }
-            self.buzz(v, round: round + 1)
+        hiddenBusy = true
+        startScan()
+    }
+
+    // MARK: Scanning + vibration
+    private func startScan() {
+        scanToken += 1
+        let my = scanToken
+        detector.beginScan()
+        DispatchQueue.main.asyncAfter(deadline: .now() + settings.vibDelay) { [weak self] in
+            self?.buzzRound(my, round: 0)
         }
     }
 
-    func stopBuzz() {
-        buzzToken += 1
-        token += 1
-        detector.cancelScan()
+    private func buzzRound(_ my: Int, round: Int) {
+        guard my == scanToken, round < maxBuzzRounds else { return }
+        let length: Double
+        if !sensor.isLive && detector.scanStatus == nil {
+            length = haptics.long()                       // ingen sensordata
+        } else {
+            let coin = detector.scanStatus ?? false
+            length = haptics.pulses(coin ? 2 : 1)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + length + 1.0) { [weak self] in
+            self?.buzzRound(my, round: round + 1)
+        }
+    }
+
+    private func stopScan() {
+        scanToken += 1
+        if detector.isScanning { _ = detector.endScan() }
         hiddenBusy = false
     }
 
-    // MARK: Afgørelse
-    private func decide() -> Verdict {
-        let r = detector.endScan()
-        let verdict: Verdict
-        let source: String
-        if let a = armed {
-            verdict = a
-            source = settings.tr("volumenknap", "volume button")
-        } else if settings.autoSensor, let magnet = r.magnet {
-            verdict = magnet ? settings.magnetMeans : settings.magnetMeans.opposite
-            source = "sensor"
-        } else {
-            verdict = settings.fallback
-            source = settings.tr("standard", "default")
-        }
+    private func logText(_ v: Verdict?, status: Bool?, peak: Double) -> String {
         let sensorText: String
-        if let magnet = r.magnet {
-            sensorText = String(format: "%@ · %.0f/%.0f µT", magnet ? "magnet" : settings.tr("ingen magnet", "no magnet"), r.peak, settings.threshold)
-        } else {
-            sensorText = settings.tr("ingen data", "no data")
+        switch status {
+        case .some(true): sensorText = String(format: settings.tr("mønt · %.0f/%.0f µT", "coin · %.0f/%.0f µT"), peak, settings.threshold)
+        case .some(false): sensorText = String(format: settings.tr("ingen mønt · %.0f/%.0f µT", "no coin · %.0f/%.0f µT"), peak, settings.threshold)
+        case .none: sensorText = settings.tr("ingen sensordata", "no sensor data")
         }
-        addLog("\(settings.word(verdict)) ← \(source) | \(sensorText)")
-        armed = nil
-        return verdict
-    }
-
-    private func volumePressed(_ v: Verdict) {
-        guard settings.volumeButtons, !panelOpen else { return }
-        armed = v
-        if settings.haptic { haptics.tick() }
+        if let v { return "\(settings.word(v)) | \(sensorText)" }
+        return settings.tr("Hemmelig: ", "Secret: ") + sensorText
     }
 
     // MARK: Lær min mønt
@@ -195,7 +187,7 @@ final class Engine: ObservableObject {
         learnStep = step
         learnMessage = nil
         learnRunning = true
-        detector.cancelScan()
+        stopScan()
         // Kort pause, så grundmålingen tages med telefonen i ro, derefter 3 s måling.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
             guard let self else { return }
@@ -216,14 +208,13 @@ final class Engine: ObservableObject {
 
     private func finishLearnIfReady() {
         guard let n = learnNoise, let c = learnCoin else { return }
+        learnStep = .done
         if let t = Detector.learnedThreshold(noise: n, coin: c) {
             settings.threshold = min(300, max(5, t))
-            learnStep = .done
             learnMessage = settings.tr("Tærskel sat til \(Int(settings.threshold)) µT.", "Threshold set to \(Int(settings.threshold)) µT.")
             addLog(settings.tr("Lært: uden mønt \(Int(n)) µT, med mønt \(Int(c)) µT → \(Int(settings.threshold)) µT",
                                "Learned: no coin \(Int(n)) µT, coin \(Int(c)) µT → \(Int(settings.threshold)) µT"))
         } else {
-            learnStep = .done
             learnMessage = settings.tr("Mønten gav for lille udslag (\(Int(c)) µT mod \(Int(n)) µT). Hold toppen af telefonen tættere på mønten og prøv igen.",
                                        "The coin gave too small a signal (\(Int(c)) µT vs \(Int(n)) µT). Hold the top of the phone closer and try again.")
         }
@@ -231,21 +222,9 @@ final class Engine: ObservableObject {
 
     func resetLearn() { learnStep = .idle; learnNoise = nil; learnCoin = nil; learnMessage = nil }
 
-    // MARK: Panik / nulstil
-    func panic() {
-        resetToStart()
-        settings.volumeButtons = false
-        settings.autoSensor = true
-        addLog(settings.tr("PANIK – volumenknapper slået fra", "PANIC – volume buttons off"))
-        UINotificationFeedbackGenerator().notificationOccurred(.warning)
-    }
-
+    // MARK: Nulstil
     func resetToStart() {
-        token += 1
-        buzzToken += 1
-        detector.cancelScan()
-        armed = nil
-        hiddenBusy = false
+        stopScan()
         screen = .start
     }
 
