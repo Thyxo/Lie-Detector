@@ -19,6 +19,15 @@
       "screenshots": [],
       "versions": [
         {
+          "version": "1.0.7",
+          "buildVersion": "7",
+          "date": "2026-10-22T16:15:35Z",
+          "localizedDescription": "Build 7",
+          "downloadURL": "https://github.com/Thyxo/Lie-Detector/releases/download/build-7/MindTrace.ipa",
+          "size": 447356,
+          "minOSVersion": "17.0"
+        },
+        {
           "version": "1.0.5",
           "buildVersion": "5",
           "date": "2026-10-22T15:35:20Z",
