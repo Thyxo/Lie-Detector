@@ -55,6 +55,7 @@ source = {
     "news": [],
 }
 
+os.makedirs(os.path.dirname(path), exist_ok=True)
 with open(path, "w") as f:
     json.dump(source, f, ensure_ascii=False, indent=2)
     f.write("\n")
