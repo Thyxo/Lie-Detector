@@ -1,0 +1,40 @@
+{
+  "name": "MindTrace",
+  "identifier": "dk.thyxo.mindtrace.source",
+  "subtitle": "Løgnedetektor med magnet",
+  "description": "Kilde til MindTrace – opdateres automatisk ved hver ny build.",
+  "iconURL": "https://raw.githubusercontent.com/Thyxo/Lie-Detector/main/ios/MindTrace/Assets.xcassets/AppIcon.appiconset/icon-1024.png",
+  "website": "https://github.com/Thyxo/Lie-Detector",
+  "tintColor": "#3BC4CA",
+  "apps": [
+    {
+      "name": "MindTrace",
+      "bundleIdentifier": "dk.thyxo.mindtrace",
+      "developerName": "Thyxo",
+      "subtitle": "Sandt eller falsk?",
+      "localizedDescription": "Tryllerekvisit: telefonen føres over tilskuerens hånd og afslører med magnetometeret, om der gemmer sig en magnet. Magnet = Falsk.",
+      "iconURL": "https://raw.githubusercontent.com/Thyxo/Lie-Detector/main/ios/MindTrace/Assets.xcassets/AppIcon.appiconset/icon-1024.png",
+      "tintColor": "#3BC4CA",
+      "category": "entertainment",
+      "screenshots": [],
+      "versions": [
+        {
+          "version": "1.0.3",
+          "buildVersion": "3",
+          "date": "2026-10-22T14:01:41Z",
+          "localizedDescription": "Build 3",
+          "downloadURL": "https://github.com/Thyxo/Lie-Detector/releases/download/build-3/MindTrace.ipa",
+          "size": 133492,
+          "minOSVersion": "17.0"
+        }
+      ],
+      "appPermissions": {
+        "entitlements": [],
+        "privacy": {
+          "NSMotionUsageDescription": "Bruges til at måle magnetfeltet."
+        }
+      }
+    }
+  ],
+  "news": []
+}
