@@ -1,76 +1,63 @@
 # MindTrace – løgnedetektor med magnet
 
-En iPhone-app (SwiftUI) til close-up-magi. Tilskueren får en magnetisk ting, tager hænderne om ryggen og putter den i hånden – eller lader være. Telefonen føres hen over hånden og siger **Sandt** eller **Falsk**.
+iPhone-app (SwiftUI) til close-up-magi. Tilskueren får en magnetisk mønt (med magnet i), tager hænderne om ryggen og gemmer den i hånden – eller ikke. Telefonen føres hen over hånden og siger **Sandt** eller **Falsk** (med lyd).
 
-**Magnet registreret = Falsk.** Rutinen er "Jeg har ingenting i hånden", så en magnet afslører løgnen.
+**Standard: magnet = Falsk** (kan vendes i menuen).
 
 ---
 
-## 1. Skærme
-| Skærm | Udseende |
-|---|---|
-| Start | Sort, "Sandt eller falsk?". Tryk hvor som helst for at starte |
-| Tænker | Sort, "Tænker" + pulserende turkis prik, 2–4 s (tilfældig) |
-| Sandt | Turkis (#3BC4CA), hvid tekst |
-| Falsk | Rød (#FF0000), hvid tekst |
-
-Tryk på Sandt/Falsk → tilbage til start.
-
-## 2. Sådan afgøres det
-1. **Volumenknapper** (vinder altid): op = Sandt, ned = Falsk. Virker på start-, Tænker- og resultatskærmen (gælder næste/aktuelle afsløring). Lille vibration bekræfter.
-2. **Automatisk sensor**: ægte magnetometer via Core Motion. Grundmåling = median af de sidste 1,5 s før Tænker. Magnet = |B| afviger mindst *tærsklen* i *N målinger i træk*.
-3. **Ingen af delene**: standard-svar fra menuen (Sandt).
-
-**Workflow:** hold telefonen væk fra hånden → tryk → før telefonens top hen over hånden (1–3 cm) mens den tænker.
-
-## 3. Hemmelig menu
-- **Åbn:** 5 hurtige tryk (inden for 2½ s) i **øverste højre hjørne**.
-- **Færdig** lukker (tryk det første sekund ignoreres).
-- **Sensor-test:** live µT, grundmåling og Δ fra reference + "MAGNET"-markør – brug den til at finde tærsklen til din magnet.
-- Indstillinger: automatisk sensor, volumenknapper, vibration, diskret prik, standard-svar, tærskel, målinger i træk, sensorkilde (kalibreret/rå), Tænker-tid, log.
-- **Diskret prik:** næsten usynlig mørkegrå prik øverst på startskærmen, når en volumenknap er trykket (venstre = Sandt, højre = Falsk).
-- **Panik:** hold **nederste venstre hjørne** på startskærmen i ¾ s (eller PANIK-knappen). Volumenknapper slås fra, kun ærlig sensor.
-
-## 4. Hent og installér (sideload)
-
-### SideStore-kilde (anbefalet – automatiske opdateringer)
+## 1. Installér (SideStore)
 Kilde-URL:
 ```
 https://raw.githubusercontent.com/Thyxo/Lie-Detector/main/sidestore/source.json
 ```
-SideStore → **Sources** → **+** → indsæt URL → MindTrace → **Free/Install**. Nye builds vises som opdateringer i SideStore. Virker også i AltStore.
+SideStore → **Sources** → **+** → indsæt URL → MindTrace → **Install**. Nye versioner kommer som opdateringer. Virker også i AltStore. IPA'er ligger også under *Releases*.
 
-### Manuelt
-Hvert push til `main` bygger en **usigneret IPA** via GitHub Actions (macOS) og lægger den under **Releases**.
+## 2. Tilstande
+| Tilstand | Hvad sker der |
+|---|---|
+| **Normal** | Start ("Sandt eller falsk?") → tryk → *Tænker* 2–4 s → **Sandt** (turkis) / **Falsk** (rød) + lyd. Tryk = tilbage. |
+| **Hemmelig vibration** | Sort skærm eller dit eget billede (fx skærmbillede af hjemmeskærmen). Tryk → scanning → vibration: **1 = Falsk, 2 = Sandt**, 1 s pause, *5 gange* eller *til du trykker*. Tryk igen stopper. |
 
-- Seneste IPA: `https://github.com/Thyxo/lie-detector/releases/latest/download/MindTrace.ipa`
-- Også som artefakt under fanen *Actions*.
+## 3. Brug
+1. Hold telefonen væk fra hånden og tryk (grundmåling tages lige før).
+2. Før **toppen** af telefonen hen over hånden (1–3 cm), mens den tænker.
+3. Volumenknapper vinder altid: **op = Sandt, ned = Falsk** (lille vibration bekræfter).
 
-**Med AltStore (gratis Apple ID):** installér AltServer på PC/Mac → AltStore på iPhone → hent IPA'en i Filer → AltStore → *My Apps* → **+** → vælg IPA. Fornyes hver 7. dag (AltStore gør det automatisk på samme wifi som AltServer).
+## 4. Hemmelig menu
+**Åbn:** 5 hurtige tryk i øverste højre hjørne. **Færdig** lukker (første sekund ignoreres).
 
-**Med Sideloadly:** træk IPA'en ind, log ind med Apple ID, tryk Start.
+- **Sensor**: live-bjælke med udslag, top og tærskel-streg + "MAGNET"/"ingen magnet".
+- **Følsomhed**: tærskel i µT (standard **40 µT**, knap "Standard"). Under tærsklen = ingen magnet.
+- **Lær min mønt (anbefalet)**: 1) 3 s uden mønt, 2) 3 s hen over hånden med mønt → tærsklen sættes automatisk.
+- **Afgørelse**: automatisk sensor, *magnet betyder* Falsk/Sandt, volumenknapper.
+- **Tilstand**: Normal / Hemmelig vibration, gentagelse, billede, test-vibrationer.
+- **Udseende og lyd**: dansk/English, lyd til/fra (+ test), 6 skrifter (Bungee, Rubik Mono, Lilita, Luckiest Guy, Pixel, Gill Sans).
+- **Avanceret**: Tænker-tid, målinger i træk, målemetode, standard-svar, diskret prik, log.
+- **Panik**: hold nederste venstre hjørne på startskærmen i ¾ s (eller PANIK-knappen).
 
-På iPhone: *Indstillinger → Generelt → VPN og enhedsadministration* → stol på dit Apple ID. iOS 16+: slå **Udviklertilstand** til (*Indstillinger → Anonymitet og sikkerhed*).
+## 5. Sådan virker detektionen
+- Rå magnetometer (100 Hz) + telefonens orientering. Feltet regnes om til rummets akser, så **drejning af telefonen ikke giver udslag** – kun en magnet tæt på gør.
+- Telefonens egen magnetisme (bias) læres løbende og **fryses under scanning**, så iOS' kalibrering ikke kan "æde" magneten.
+- Udslag = største afvigelse fra grundmålingen, holdt i 3 målinger i træk (enkelt-spikes ignoreres) → sammenlignes med tærsklen.
+- Logikken er dækket af automatiske tests (`ios/MindTraceTests`), som kører på GitHub før hver build.
 
-## 5. Projekt
+## 6. Projekt
 ```
-ios/project.yml           XcodeGen-projekt (Xcode-projektet genereres i CI)
-ios/MindTrace/
-  MindTraceApp.swift      App-indgang
-  RootView.swift          Start / Tænker / Sandt / Falsk + hemmelig zone
-  SecretPanel.swift       Hemmelig menu
-  Engine.swift            Forløb og afgørelse
-  MagnetSensor.swift      Core Motion (kalibreret felt eller rå magnetometer)
-  Detector.swift          Grundmåling, tærskel, N i træk
-  VolumeButtons.swift     Volumenknapper (skjult lydstyrke-boble)
-  AppSettings.swift       Indstillinger (UserDefaults)
-.github/workflows/ipa.yml Bygger IPA og release
+ios/project.yml             XcodeGen (app + logik-tests)
+ios/MindTrace/              App (SwiftUI)
+  Detector.swift, Vec3.swift  Detektion (ren logik, testet)
+  MagnetSensor.swift          Core Motion
+  Engine.swift                Forløb, afgørelse, lær-min-mønt, vibration
+  RootView.swift              Skærme
+  SecretPanel.swift           Hemmelig menu
+  Resources/Fonts, Sounds     Skrifter (OFL/Apache) og lyde
+ios/MindTraceTests/         Tests
+.github/workflows/ipa.yml   Test → build → release → SideStore-kilde
+demo/                       Klikbar web-demo af udseendet
 ```
-Med Mac: `brew install xcodegen && cd ios && xcodegen generate && open MindTrace.xcodeproj`.
+Push til `dev` = test + build (ingen release). Push til `main` = release + ny SideStore-version.
 
-## 6. Kendte begrænsninger / test på telefonen
-- Afstand: magnetometeret sidder øverst i iPhonen. En lille neodym-magnet giver typisk stort udslag på 1–3 cm, næsten intet på 10 cm. Find tærsklen i Sensor-test.
-- "Kalibreret" kilde: iOS kan langsomt kalibrere et konstant felt væk. Scanningen er kort, så det er sjældent et problem – ellers skift til "Rå".
-- Volumenknapper sætter lydstyrken til 50 % for at kunne mærke både op og ned.
-- Lydløs-knappen påvirker ikke appen (ingen lyd).
-- Appen er ikke kørt på fysisk iPhone af udvikleren – test sensor, volumenknapper og hemmelig menu før første show.
+## 7. Kendt / test på telefonen
+- Lyden spiller også med lydløs-knappen slået til. Volumen nulstilles til 75 % for at kunne mærke knaptryk.
+- Lydene er hentet fra myinstants.com (brugeruploadede) – tjek selv rettigheder til offentlige shows.
