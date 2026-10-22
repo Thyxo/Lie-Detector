@@ -3,6 +3,7 @@ name: Build IPA
 on:
   push:
     branches: [main]
+    paths: ["ios/**", "sounds/**", "scripts/**", ".github/workflows/ipa.yml"]
   workflow_dispatch:
 
 permissions:

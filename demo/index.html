@@ -1,0 +1,331 @@
+<meta charset="utf-8">
+<title>MindTrace Demo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Lilita+One&family=Luckiest+Guy&family=Press+Start+2P&family=Rubik+Mono+One&display=swap">
+<style>
+/* Single dark look (app is black). Full-screen app mock; secret menu = bottom sheet. */
+:root {
+  color-scheme: dark;
+  --black: #000;
+  --sandt: #3BC4CA;
+  --falsk: #FF0000;
+  --white: #fff;
+  --sheet: #1c1c1e;
+  --row: #2c2c2e;
+  --muted: #8e8e93;
+  --blue: #0a84ff;
+  --font-app: "Bungee", "Arial Black", Impact, sans-serif;
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+}
+html, body { height: 100%; }
+body { background: var(--black); color: var(--white); font-family: var(--font-ui); overflow: hidden;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+button { font: inherit; color: inherit; }
+
+.screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 28px; text-align: center;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.screen.start { background: var(--black); }
+.screen.sandt { background: var(--sandt); }
+.screen.falsk { background: var(--falsk); }
+.screen.think { background: var(--black); }
+.screen.hidden-mode { background: var(--black) center / cover no-repeat; }
+.word { font-family: var(--font-app); color: var(--white); font-size: clamp(44px, 16vw, 84px); line-height: 1; letter-spacing: .01em; }
+.word.small { font-size: clamp(22px, 7vw, 32px); opacity: .9; }
+.word.px { font-size: clamp(26px, 9vw, 48px); }
+.word.small.px { font-size: clamp(13px, 4.2vw, 18px); line-height: 1.5; }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: var(--sandt); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { transform: scale(.5); opacity: .35 } 50% { transform: scale(1); opacity: 1 } }
+.pop { animation: pop .28s cubic-bezier(.2,1.6,.4,1); }
+@keyframes pop { from { transform: scale(.6) } to { transform: scale(1) } }
+@media (prefers-reduced-motion: reduce) { .dot, .pop { animation: none } }
+
+.secret-zone { position: fixed; top: 0; right: 0; width: 90px; height: 90px; z-index: 5; }
+.buzz { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  z-index: 6; font: 600 12px var(--font-ui); letter-spacing: .12em; color: #5a5a5e; text-transform: uppercase; }
+.buzz.on { color: #fff; }
+
+.hint { position: fixed; inset: auto 0 0 0; z-index: 7; padding: 18px max(16px, env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  background: rgba(28,28,30,.96); font-size: 14px; line-height: 1.45; color: #d1d1d6; }
+.hint b { color: #fff; }
+.hint button { margin-top: 12px; width: 100%; min-height: 46px; border: 0; border-radius: 12px; background: var(--blue); color: #fff; font-weight: 600; }
+
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 9; }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; top: calc(10px + env(safe-area-inset-top, 0px)); z-index: 10;
+  background: var(--sheet); border-radius: 14px 14px 0 0; display: flex; flex-direction: column; overflow: hidden;
+  transform: translateY(105%); transition: transform .32s cubic-bezier(.2,.8,.2,1); }
+.sheet.open { transform: none; }
+.sheet header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 14px 16px; border-bottom: 1px solid #38383a; }
+.sheet header h2 { margin: 0; font-size: 17px; font-weight: 600; }
+.sheet header button { justify-self: end; background: none; border: 0; color: var(--blue); font-size: 17px; font-weight: 600; min-height: 44px; padding: 0 4px; }
+.sheet .body { overflow-y: auto; padding: 8px max(16px, env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); -webkit-overflow-scrolling: touch; }
+.sec { margin-top: 22px; }
+.sec h3 { margin: 0 0 6px 16px; font-size: 13px; font-weight: 400; color: var(--muted); text-transform: uppercase; letter-spacing: .02em; }
+.group { background: var(--row); border-radius: 12px; overflow: hidden; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 8px 16px; font-size: 16px; }
+.row + .row { border-top: 1px solid #38383a; }
+.row label { flex: 1; min-width: 0; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: #3a3a3c; border-radius: 9px; padding: 2px; gap: 2px; width: 100%; }
+.seg button { border: 0; background: none; border-radius: 7px; min-height: 34px; font-size: 13px; font-weight: 600; color: #e5e5ea; }
+.seg button.on { background: #636366; color: #fff; }
+.fonts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px; }
+.fonts button { border: 2px solid transparent; background: #3a3a3c; border-radius: 10px; min-height: 64px; color: #fff; padding: 6px; font-size: 20px; }
+.fonts button.on { border-color: var(--blue); }
+.fonts button small { display: block; font: 400 11px var(--font-ui); color: var(--muted); margin-top: 4px; }
+.switch { appearance: none; width: 51px; height: 31px; border-radius: 16px; background: #39393d; position: relative; flex: none; transition: background .2s; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; transition: transform .2s; }
+.switch:checked { background: #30d158; }
+.switch:checked::after { transform: translateX(20px); }
+.btn { border: 0; background: none; color: var(--blue); font-size: 16px; padding: 0; min-height: 44px; text-align: left; }
+.note { font-size: 13px; color: var(--muted); margin: 6px 16px 0; line-height: 1.4; }
+input[type=file] { display: none; }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+</style>
+
+<div id="app"></div>
+<div class="secret-zone" id="secret-zone" aria-hidden="true"></div>
+<div class="buzz" id="buzz" hidden></div>
+
+<div class="hint" id="hint">
+  <b>Demo af MindTrace.</b> Tryk på skærmen for at starte. Resultatet er tilfældigt her (ingen sensor i en browser).
+  <b>Hemmelig menu:</b> 5 hurtige tryk øverst til højre. Der kan du vælge skrift, sprog, lyd og den hemmelige vibrationstilstand.
+  <button id="hint-ok" type="button">OK</button>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<section class="sheet" id="sheet" aria-label="Hemmelig menu">
+  <header><span></span><h2 id="t-menu">MindTrace</h2><button id="done" type="button">Færdig</button></header>
+  <div class="body">
+    <div class="sec">
+      <h3 id="t-mode">Tilstand</h3>
+      <div class="group"><div class="row"><div class="seg" id="seg-mode">
+        <button type="button" data-v="normal" id="t-normal">Normal</button>
+        <button type="button" data-v="hidden" id="t-hiddenmode">Hemmelig vibration</button>
+      </div></div></div>
+      <p class="note" id="t-mode-note"></p>
+    </div>
+
+    <div class="sec">
+      <h3 id="t-demo">Demo-resultat</h3>
+      <div class="group"><div class="row"><div class="seg" id="seg-result">
+        <button type="button" data-v="random" id="t-random">Tilfældig</button>
+        <button type="button" data-v="sandt" id="t-r-true">Sandt</button>
+        <button type="button" data-v="falsk" id="t-r-false">Falsk</button>
+      </div></div></div>
+      <p class="note" id="t-demo-note">I appen afgør magnetometeret eller volumenknapperne det.</p>
+    </div>
+
+    <div class="sec">
+      <h3 id="t-font">Skrift</h3>
+      <div class="group"><div class="fonts" id="fonts"></div></div>
+    </div>
+
+    <div class="sec">
+      <h3 id="t-general">Generelt</h3>
+      <div class="group">
+        <div class="row"><div class="seg" id="seg-lang">
+          <button type="button" data-v="da">Dansk</button>
+          <button type="button" data-v="en">English</button>
+        </div></div>
+        <div class="row"><label for="sw-sound" id="t-sound">Lyd ved Sandt/Falsk</label><input type="checkbox" class="switch" id="sw-sound"></div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-vib">
+      <h3 id="t-vib">Hemmelig vibration</h3>
+      <div class="group">
+        <div class="row"><div class="seg" id="seg-rep">
+          <button type="button" data-v="5" id="t-rep5">5 gange</button>
+          <button type="button" data-v="loop" id="t-replo">Til jeg trykker</button>
+        </div></div>
+        <div class="row"><button class="btn" type="button" id="pick-bg">Vælg billede af hjemmeskærm</button></div>
+        <div class="row"><button class="btn" type="button" id="clear-bg">Brug sort skærm</button></div>
+      </div>
+      <p class="note" id="t-vib-note">1 vibration = Falsk, 2 = Sandt. 1 sekunds pause mellem gentagelserne.</p>
+      <input type="file" accept="image/*" id="file-bg">
+    </div>
+  </div>
+</section>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const FONTS = [
+    { id: 'bungee', name: 'Bungee', css: '"Bungee", "Arial Black", Impact, sans-serif' },
+    { id: 'rubik', name: 'Rubik Mono One', css: '"Rubik Mono One", "Arial Black", sans-serif' },
+    { id: 'lilita', name: 'Lilita One', css: '"Lilita One", "Arial Black", sans-serif' },
+    { id: 'luckiest', name: 'Luckiest Guy', css: '"Luckiest Guy", "Arial Black", sans-serif' },
+    { id: 'pixel', name: 'Press Start 2P', css: '"Press Start 2P", ui-monospace, monospace', px: true },
+    { id: 'gill', name: 'Gill Sans (nu)', css: '"Gill Sans", "GillSans", "Gill Sans MT", Calibri, sans-serif' },
+  ];
+  const TXT = {
+    da: { start: 'Sandt eller falsk?', think: 'Tænker', sandt: 'Sandt', falsk: 'Falsk', menu: 'MindTrace', done: 'Færdig', mode: 'Tilstand',
+      normal: 'Normal', hiddenmode: 'Hemmelig vibration', demo: 'Demo-resultat', random: 'Tilfældig', font: 'Skrift', general: 'Generelt',
+      sound: 'Lyd ved Sandt/Falsk', vib: 'Hemmelig vibration', rep5: '5 gange', replo: 'Til jeg trykker', pick: 'Vælg billede af hjemmeskærm',
+      clear: 'Brug sort skærm', vibnote: '1 vibration = Falsk, 2 = Sandt. 1 sekunds pause mellem gentagelserne.',
+      demonote: 'I appen afgør magnetometeret eller volumenknapperne det.',
+      modeNormal: 'Tilskueren ser Tænker og derefter Sandt eller Falsk med lyd.',
+      modeHidden: 'Skærmen forbliver sort (eller dit hjemmeskærm-billede). Tryk for at scanne, telefonen vibrerer svaret til dig.',
+      buzz: ['bzz', 'bzz bzz'], vibWeb: 'Vibration i demoen vises som tekst nederst (iPhone-Safari kan ikke vibrere). Appen vibrerer rigtigt.' },
+    en: { start: 'True or false?', think: 'Thinking', sandt: 'True', falsk: 'False', menu: 'MindTrace', done: 'Done', mode: 'Mode',
+      normal: 'Normal', hiddenmode: 'Secret vibration', demo: 'Demo result', random: 'Random', font: 'Font', general: 'General',
+      sound: 'Sound on True/False', vib: 'Secret vibration', rep5: '5 times', replo: 'Until I tap', pick: 'Choose home screen image',
+      clear: 'Use black screen', vibnote: '1 buzz = False, 2 = True. 1 second pause between repeats.',
+      demonote: 'In the app the magnetometer or the volume buttons decide.',
+      modeNormal: 'The spectator sees Thinking, then True or False with sound.',
+      modeHidden: 'The screen stays black (or your home screen image). Tap to scan, the phone buzzes the answer to you.',
+      buzz: ['bzz', 'bzz bzz'], vibWeb: 'In the demo the buzz is shown as text at the bottom (iPhone Safari cannot vibrate). The app vibrates for real.' },
+  };
+
+  const S = { screen: 'start', font: 'bungee', lang: 'da', sound: true, mode: 'normal', result: 'random', rep: '5', bg: null };
+  try { Object.assign(S, JSON.parse(localStorage.getItem('mt-demo') || '{}'), { screen: 'start' }); } catch (e) {}
+  const save = () => { try { const { screen, bg, ...rest } = S; localStorage.setItem('mt-demo', JSON.stringify(rest)); } catch (e) {} };
+  const t = () => TXT[S.lang];
+  const font = () => FONTS.find((f) => f.id === S.font) || FONTS[0];
+
+  // ---- audio (Web Audio, unlocked on first tap) ----
+  let ctx = null; const buffers = {};
+  function unlockAudio() {
+    if (!ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      ctx = new AC();
+      for (const k of ['true', 'false']) {
+        fetch(`sounds/${k}.mp3`).then((r) => r.ok ? r.arrayBuffer() : Promise.reject())
+          .then((b) => new Promise((res, rej) => ctx.decodeAudioData(b, res, rej)))
+          .then((buf) => { buffers[k] = buf; }).catch(() => {});
+      }
+    }
+    if (ctx.state !== 'running') ctx.resume().catch(() => {});
+  }
+  function play(k) {
+    if (!S.sound || !ctx) return;
+    if (buffers[k]) { const s = ctx.createBufferSource(); s.buffer = buffers[k]; s.connect(ctx.destination); s.start(); return; }
+    // fallback tone if the file is missing
+    const o = ctx.createOscillator(), g = ctx.createGain(), n = ctx.currentTime;
+    o.type = k === 'true' ? 'sine' : 'square';
+    o.frequency.setValueAtTime(k === 'true' ? 880 : 220, n);
+    if (k === 'true') o.frequency.setValueAtTime(1320, n + .12);
+    g.gain.setValueAtTime(.0001, n); g.gain.exponentialRampToValueAtTime(.4, n + .01); g.gain.exponentialRampToValueAtTime(.0001, n + .45);
+    o.connect(g).connect(ctx.destination); o.start(n); o.stop(n + .5);
+  }
+
+  // ---- flow ----
+  let timer = null, vibTimer = null, token = 0;
+  function pickResult() { return S.result === 'random' ? (Math.random() < .5 ? 'sandt' : 'falsk') : S.result; }
+
+  function render() {
+    const app = $('app'), f = font(), px = f.px ? ' px' : '';
+    app.innerHTML = '';
+    const el = document.createElement('div');
+    el.style.setProperty('--font-app', f.css);
+    if (S.mode === 'hidden') {
+      el.className = 'screen hidden-mode';
+      if (S.bg) el.style.backgroundImage = `url("${S.bg}")`;
+    } else if (S.screen === 'start') {
+      el.className = 'screen start';
+      el.innerHTML = `<div class="word small${px}">${t().start}</div>`;
+    } else if (S.screen === 'think') {
+      el.className = 'screen think';
+      el.innerHTML = `<div class="word${px}">${t().think}</div><div class="dot"></div>`;
+    } else {
+      el.className = `screen ${S.screen}`;
+      el.innerHTML = `<div class="word pop${px}">${t()[S.screen]}</div>`;
+    }
+    el.addEventListener('click', onTap);
+    app.appendChild(el);
+  }
+
+  function onTap() {
+    unlockAudio();
+    if ($('sheet').classList.contains('open')) return;
+    if (S.mode === 'hidden') return hiddenTap();
+    if (S.screen === 'start') {
+      S.screen = 'think'; render();
+      const my = ++token;
+      timer = setTimeout(() => {
+        if (my !== token) return;
+        S.screen = pickResult(); render();
+        play(S.screen === 'sandt' ? 'true' : 'false');
+      }, 2000 + Math.random() * 2000);
+    } else if (S.screen !== 'think') { S.screen = 'start'; render(); }
+  }
+
+  // Hidden vibration mode: tap = scan (1.5 s), then buzz pattern; tap again stops.
+  function hiddenTap() {
+    if (vibTimer) { stopBuzz(); return; }
+    const my = ++token;
+    setTimeout(() => { if (my === token) buzzLoop(pickResult()); }, 1500);
+  }
+  function buzzLoop(r) {
+    const n = r === 'sandt' ? 2 : 1;
+    let done = 0;
+    const once = () => {
+      const pattern = n === 2 ? [180, 160, 180] : [260];
+      try { navigator.vibrate && navigator.vibrate(pattern); } catch (e) {}
+      const b = $('buzz'); b.hidden = false; b.textContent = t().buzz[n - 1]; b.classList.add('on');
+      setTimeout(() => b.classList.remove('on'), n === 2 ? 520 : 260);
+      done++;
+      if (S.rep !== 'loop' && done >= 5) { vibTimer = setTimeout(stopBuzz, 1200); return; }
+      vibTimer = setTimeout(once, 1000 + (n === 2 ? 520 : 260));
+    };
+    once();
+  }
+  function stopBuzz() { clearTimeout(vibTimer); vibTimer = null; const b = $('buzz'); b.hidden = true; b.classList.remove('on'); }
+
+  // ---- secret menu: 5 quick taps top-right ----
+  let taps = [], openedAt = 0;
+  $('secret-zone').addEventListener('click', (e) => {
+    e.stopPropagation(); unlockAudio();
+    const now = Date.now(); taps = taps.filter((x) => now - x < 2500); taps.push(now);
+    if (taps.length >= 5) { taps = []; openSheet(); }
+  });
+  function openSheet() { openedAt = Date.now(); syncMenu(); $('scrim').hidden = false; $('sheet').classList.add('open'); }
+  function closeSheet() { if (Date.now() - openedAt < 1000) return; $('sheet').classList.remove('open'); $('scrim').hidden = true; save(); stopBuzz(); token++; S.screen = 'start'; render(); }
+  $('done').addEventListener('click', closeSheet);
+
+  function seg(id, key) {
+    $(id).querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { S[key] = b.dataset.v; save(); syncMenu(); render(); }));
+  }
+  seg('seg-mode', 'mode'); seg('seg-result', 'result'); seg('seg-lang', 'lang'); seg('seg-rep', 'rep');
+  $('sw-sound').addEventListener('change', (e) => { S.sound = e.target.checked; save(); });
+  $('pick-bg').addEventListener('click', () => $('file-bg').click());
+  $('clear-bg').addEventListener('click', () => { S.bg = null; render(); });
+  $('file-bg').addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const r = new FileReader(); r.onload = () => { S.bg = r.result; render(); }; r.readAsDataURL(file);
+  });
+
+  const fontsEl = $('fonts');
+  FONTS.forEach((f) => {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.v = f.id;
+    b.style.fontFamily = f.css; if (f.px) b.style.fontSize = '12px';
+    b.innerHTML = `${S.lang === 'en' ? 'True' : 'Sandt'}<small>${f.name}</small>`;
+    b.addEventListener('click', () => { S.font = f.id; save(); syncMenu(); render(); });
+    fontsEl.appendChild(b);
+  });
+
+  function syncMenu() {
+    const T = t();
+    const set = (id, s) => { const e = $(id); if (e) e.textContent = s; };
+    set('t-menu', T.menu); set('done', T.done); set('t-mode', T.mode); set('t-normal', T.normal); set('t-hiddenmode', T.hiddenmode);
+    set('t-demo', T.demo); set('t-random', T.random); set('t-r-true', T.sandt); set('t-r-false', T.falsk); set('t-font', T.font);
+    set('t-general', T.general); set('t-sound', T.sound); set('t-vib', T.vib); set('t-rep5', T.rep5); set('t-replo', T.replo);
+    set('pick-bg', T.pick); set('clear-bg', T.clear); set('t-vib-note', `${T.vibnote} ${T.vibWeb}`); set('t-demo-note', T.demonote);
+    set('t-mode-note', S.mode === 'hidden' ? T.modeHidden : T.modeNormal);
+    for (const [id, key] of [['seg-mode', 'mode'], ['seg-result', 'result'], ['seg-lang', 'lang'], ['seg-rep', 'rep']])
+      $(id).querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.v === S[key]));
+    fontsEl.querySelectorAll('button').forEach((b) => {
+      b.classList.toggle('on', b.dataset.v === S.font);
+      b.firstChild.textContent = S.lang === 'en' ? 'True' : 'Sandt';
+    });
+    $('sw-sound').checked = S.sound;
+    $('sec-vib').style.opacity = S.mode === 'hidden' ? '1' : '.55';
+  }
+
+  $('hint-ok').addEventListener('click', (e) => { e.stopPropagation(); unlockAudio(); $('hint').hidden = true; });
+  try { navigator.wakeLock && navigator.wakeLock.request('screen').catch(() => {}); } catch (e) {}
+  render(); syncMenu();
+})();
+</script>
