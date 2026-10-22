@@ -32,6 +32,15 @@ Tryk på Sandt/Falsk → tilbage til start.
 - **Panik:** hold **nederste venstre hjørne** på startskærmen i ¾ s (eller PANIK-knappen). Volumenknapper slås fra, kun ærlig sensor.
 
 ## 4. Hent og installér (sideload)
+
+### SideStore-kilde (anbefalet – automatiske opdateringer)
+Kilde-URL:
+```
+https://raw.githubusercontent.com/Thyxo/Lie-Detector/main/sidestore/source.json
+```
+SideStore → **Sources** → **+** → indsæt URL → MindTrace → **Free/Install**. Nye builds vises som opdateringer i SideStore. Virker også i AltStore.
+
+### Manuelt
 Hvert push til `main` bygger en **usigneret IPA** via GitHub Actions (macOS) og lægger den under **Releases**.
 
 - Seneste IPA: `https://github.com/Thyxo/lie-detector/releases/latest/download/MindTrace.ipa`
