@@ -1,65 +1,116 @@
 import Foundation
 
-struct ScanResult {
-    let magnet: Bool?        // nil = for få målinger
-    let peak: Double
-    let samples: Int
-    let baseline: Double?
+/// Én måling fra telefonen. Alle felter er valgfrie, fordi sensorerne leverer hver for sig.
+struct MagSample {
+    var raw: Vec3?        // rå magnetometer (µT, telefonens akser, inkl. telefonens egen magnetisme)
+    var cal: Vec3?        // iOS-kalibreret felt (µT), kun når kalibreringen er gyldig
+    var rot: Mat3?        // telefonens orientering
+    var gravity: Vec3?    // tyngdekraft i telefonens akser (bruges til at vælge matrix-konvention)
 }
 
-/// Grundmåling = median af de seneste ~1,5 s før scanning.
-/// Magnet = |B| afviger mindst `threshold` µT i `consecutive` målinger i træk.
-final class Detector {
-    private var recent: [Double] = []
-    private let recentMax = 75            // 1,5 s ved 50 Hz
-    private(set) var smoothed: Double?
-    private(set) var reference: Double?   // fri reference til test i panelet
+enum SensorMode: String, CaseIterable, Identifiable {
+    case auto   // drejnings-kompenseret
+    case raw    // rå vektor, telefonen skal holdes roligt
+    var id: String { rawValue }
+}
 
-    private var scanning = false
-    private var baseline: Double?
-    private var run = 0, bestRun = 0, count = 0
-    private var peak = 0.0
+/// Omsætter målinger til et felt i "rummets" akser, så det ikke ændrer sig, når telefonen drejes.
+/// Kun en magnet tæt på giver så et udslag.
+final class FieldTracker {
+    private(set) var bias: Vec3?
+    var biasFrozen = false
+    var mode: SensorMode = .auto
 
-    var threshold = 20.0
-    var consecutive = 4
-
-    func push(_ m: Double) {
-        smoothed = smoothed.map { $0 + 0.25 * (m - $0) } ?? m
-        if scanning, let b = baseline {
-            let dev = abs(m - b)
-            count += 1
-            peak = max(peak, dev)
-            run = dev >= threshold ? run + 1 : 0
-            bestRun = max(bestRun, run)
-        } else {
-            recent.append(m)
-            if recent.count > recentMax { recent.removeFirst(recent.count - recentMax) }
+    func field(_ s: MagSample) -> Vec3? {
+        // Telefonens egen magnetisme (bias) = rå − kalibreret. Læres løbende, fryses under scanning,
+        // så iOS' kalibrering ikke kan "vænne sig til" magneten.
+        if let raw = s.raw, let cal = s.cal, !biasFrozen {
+            let b = raw - cal
+            if b.isFinite { bias = bias.map { $0 + (b - $0) * 0.05 } ?? b }
         }
+        if mode == .raw { return s.raw ?? s.cal }
+        guard let rot = s.rot else { return s.raw ?? s.cal }
+        let device: Vec3
+        if let raw = s.raw, let b = bias { device = raw - b }
+        else if let cal = s.cal { device = cal }
+        else { return s.raw }
+        return FieldTracker.toWorld(device, rot: rot, gravity: s.gravity)
     }
 
-    var liveBaseline: Double? { Self.median(recent) }
+    /// CoreMotions matrix-konvention afgøres med tyngdekraften: i rummets akser peger den lige ned (z = −1).
+    static func toWorld(_ v: Vec3, rot: Mat3, gravity: Vec3?) -> Vec3 {
+        let t = rot.transposed
+        guard let g = gravity, g.length > 0.5 else { return t.mul(v) }
+        let za = rot.mul(g).z / g.length, zb = t.mul(g).z / g.length
+        return abs(za + 1) < abs(zb + 1) ? rot.mul(v) : t.mul(v)
+    }
+}
 
-    func setReference() { reference = smoothed }
+struct ScanResult {
+    let magnet: Bool?      // nil = for få målinger
+    let peak: Double       // største udslag holdt i `consecutive` målinger (µT)
+    let samples: Int
+}
 
-    func beginScan() {
-        baseline = recent.count >= 15 ? Self.median(recent) : nil
-        run = 0; bestRun = 0; count = 0; peak = 0
-        scanning = true
+/// Grundmåling lige før tryk → største vedvarende udslag under scanning → sammenlign med tærsklen.
+final class Detector {
+    let tracker = FieldTracker()
+    var threshold = 40.0
+    var consecutive = 3
+
+    private var idle: [Vec3] = []
+    private let idleMax = 60
+    private(set) var current: Vec3?
+
+    private struct Scan { var base: Vec3; var recent: [Double] = []; var peak = 0.0; var n = 0 }
+    private var scan: Scan?
+    var isScanning: Bool { scan != nil }
+
+    // Live-måling til panelet
+    private var liveRef: Vec3?
+    private(set) var liveAnomaly: Double?
+
+    func push(_ s: MagSample) {
+        guard let w = tracker.field(s), w.isFinite, w.length > 0.01 else { return }
+        current = w
+        if var sc = scan {
+            let a = (w - sc.base).length
+            sc.n += 1
+            sc.recent.append(a)
+            if sc.recent.count > max(1, consecutive) { sc.recent.removeFirst() }
+            if sc.recent.count >= max(1, consecutive) { sc.peak = max(sc.peak, sc.recent.min() ?? 0) }
+            scan = sc
+        } else {
+            idle.append(w)
+            if idle.count > idleMax { idle.removeFirst(idle.count - idleMax) }
+        }
+        if liveRef == nil { liveRef = w }
+        if let r = liveRef { liveAnomaly = (w - r).length }
+    }
+
+    /// Starter scanning. Grundmåling = gennemsnit af de seneste ~0,3 s.
+    @discardableResult
+    func beginScan() -> Bool {
+        guard idle.count >= 5, let base = Vec3.mean(idle.suffix(30)) else { scan = nil; return false }
+        tracker.biasFrozen = true
+        scan = Scan(base: base)
+        return true
     }
 
     func endScan() -> ScanResult {
-        scanning = false
-        guard let b = baseline, count >= 10 else {
-            return ScanResult(magnet: nil, peak: peak, samples: count, baseline: baseline)
-        }
-        return ScanResult(magnet: bestRun >= consecutive, peak: peak, samples: count, baseline: b)
+        tracker.biasFrozen = false
+        defer { scan = nil; idle.removeAll() }
+        guard let sc = scan, sc.n >= 10 else { return ScanResult(magnet: nil, peak: scan?.peak ?? 0, samples: scan?.n ?? 0) }
+        return ScanResult(magnet: sc.peak >= threshold, peak: sc.peak, samples: sc.n)
     }
 
-    func cancelScan() { scanning = false }
+    func cancelScan() { tracker.biasFrozen = false; scan = nil }
 
-    static func median(_ a: [Double]) -> Double? {
-        guard !a.isEmpty else { return nil }
-        let s = a.sorted()
-        return s.count % 2 == 1 ? s[s.count / 2] : (s[s.count / 2 - 1] + s[s.count / 2]) / 2
+    func resetLive() { liveRef = current }
+
+    /// Tærskel ud fra "Lær min mønt": udslag uden mønt (støj) og med mønt.
+    static func learnedThreshold(noise: Double, coin: Double) -> Double? {
+        guard coin >= noise * 1.5 + 5 else { return nil }
+        return (noise + (coin - noise) * 0.35).rounded()
     }
 }

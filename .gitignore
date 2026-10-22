@@ -3,3 +3,4 @@ ios/Payload/
 ios/*.ipa
 ios/MindTrace.xcodeproj/
 .DS_Store
+ios/*.log

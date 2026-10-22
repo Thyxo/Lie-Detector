@@ -5,8 +5,6 @@ extension Color {
     static let falsk = Color(red: 1, green: 0, blue: 0)
 }
 
-private let fontName = "GillSans"
-
 struct RootView: View {
     @EnvironmentObject var engine: Engine
     @EnvironmentObject var settings: AppSettings
@@ -16,8 +14,18 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
-            screen
-                .ignoresSafeArea()
+            Group {
+                if settings.mode == .hidden {
+                    HiddenScreen()
+                } else {
+                    switch engine.screen {
+                    case .start: StartScreen()
+                    case .thinking: ThinkingScreen()
+                    case .result(let v): ResultScreen(verdict: v)
+                    }
+                }
+            }
+            .ignoresSafeArea()
 
             // Skjult volumenvisning (skjuler iOS' lydstyrke-boble)
             HiddenVolumeView(view: engine.volume.volumeView)
@@ -48,17 +56,6 @@ struct RootView: View {
         .onAppear { engine.becameActive() }
     }
 
-    @ViewBuilder private var screen: some View {
-        switch engine.screen {
-        case .start:
-            StartScreen()
-        case .thinking:
-            ThinkingScreen()
-        case .result(let v):
-            ResultScreen(verdict: v)
-        }
-    }
-
     private func secretTap() {
         let now = Date()
         secretTaps = secretTaps.filter { now.timeIntervalSince($0) < 2.5 } + [now]
@@ -69,6 +66,22 @@ struct RootView: View {
     }
 }
 
+/// Stor tekst i den valgte skrift. Skaleres ned hvis ordet er for bredt.
+struct BigWord: View {
+    @EnvironmentObject var settings: AppSettings
+    let text: String
+    var size: Double = 76
+
+    var body: some View {
+        Text(text)
+            .font(settings.font.font(size))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .minimumScaleFactor(0.3)
+            .padding(.horizontal, 24)
+    }
+}
+
 struct StartScreen: View {
     @EnvironmentObject var engine: Engine
     @EnvironmentObject var settings: AppSettings
@@ -76,9 +89,8 @@ struct StartScreen: View {
     var body: some View {
         ZStack {
             Color.black
-            Text("Sandt eller falsk?")
-                .font(.custom(fontName, size: 30))
-                .foregroundStyle(.white.opacity(0.85))
+            BigWord(text: settings.tr("Sandt eller falsk?", "True or false?"), size: 30)
+                .opacity(0.9)
 
             // Diskret prik: venstre = Sandt klar, højre = Falsk klar
             if settings.dot, let a = engine.armed {
@@ -111,15 +123,14 @@ struct StartScreen: View {
 }
 
 struct ThinkingScreen: View {
+    @EnvironmentObject var settings: AppSettings
     @State private var pulse = false
 
     var body: some View {
         ZStack {
             Color.black
             VStack(spacing: 28) {
-                Text("Tænker")
-                    .font(.custom(fontName, size: 64))
-                    .foregroundStyle(.white)
+                BigWord(text: settings.tr("Tænker", "Thinking"), size: 58)
                 Circle()
                     .fill(Color.sandt)
                     .frame(width: 12, height: 12)
@@ -134,16 +145,46 @@ struct ThinkingScreen: View {
 
 struct ResultScreen: View {
     @EnvironmentObject var engine: Engine
+    @EnvironmentObject var settings: AppSettings
     let verdict: Verdict
+    @State private var shown = false
 
     var body: some View {
         ZStack {
             (verdict == .sandt ? Color.sandt : Color.falsk)
-            Text(verdict.label)
-                .font(.custom(fontName, size: 72))
-                .foregroundStyle(.white)
+            BigWord(text: settings.word(verdict), size: 80)
+                .scaleEffect(shown ? 1 : 0.6)
+                .animation(.spring(response: 0.3, dampingFraction: 0.5), value: shown)
         }
         .contentShape(Rectangle())
         .onTapGesture { engine.tapResult() }
+        .onAppear { shown = true }
+    }
+}
+
+/// Hemmelig tilstand: sort skærm eller eget billede. Tryk = scan, svaret vibreres.
+struct HiddenScreen: View {
+    @EnvironmentObject var engine: Engine
+    @EnvironmentObject var settings: AppSettings
+    @State private var image: UIImage?
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                Color.black
+                if settings.hasBackground, let image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: geo.size.width, height: geo.size.height)
+                        .clipped()
+                }
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { engine.tapHidden() }
+        .onAppear { image = BackgroundStore.load() }
+        .onChange(of: settings.backgroundVersion) { _, _ in image = BackgroundStore.load() }
     }
 }

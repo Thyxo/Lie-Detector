@@ -1,46 +1,58 @@
 import Foundation
 import CoreMotion
 
-/// Læser ægte magnetfelt (µT) via Core Motion. Opfinder aldrig værdier.
+/// Læser ægte data via Core Motion: rå magnetometer + orientering + iOS-kalibreret felt.
+/// Opfinder aldrig værdier.
 final class MagnetSensor {
     private let mm = CMMotionManager()
+    private var latestRaw: Vec3?
     private(set) var running = false
-    private(set) var activeSource: String = "—"
     private(set) var accuracy: String = "—"
     private(set) var lastSampleAt: Date?
+    private(set) var rate: Int = 0
+    private var rateCount = 0
+    private var rateStart = Date()
 
-    /// Kaldes på main-tråden med |B| i µT.
-    var onSample: ((Double) -> Void)?
+    var onSample: ((MagSample) -> Void)?
 
     var hardwareAvailable: Bool { mm.isMagnetometerAvailable || mm.isDeviceMotionAvailable }
 
-    func start(source: SensorSource) {
-        stop()
-        if source == .calibrated, mm.isDeviceMotionAvailable {
+    var isLive: Bool {
+        guard running, let t = lastSampleAt else { return false }
+        return Date().timeIntervalSince(t) < 1.0
+    }
+
+    func start() {
+        guard !running else { return }
+        let hz = 1.0 / 100.0
+        if mm.isMagnetometerAvailable {
+            mm.magnetometerUpdateInterval = hz
+            mm.startMagnetometerUpdates(to: .main) { [weak self] data, _ in
+                guard let self, let f = data?.magneticField else { return }
+                let v = Vec3(x: f.x, y: f.y, z: f.z)
+                if v.isFinite { self.latestRaw = v }
+                // Uden device motion leveres rå data direkte.
+                if !self.mm.isDeviceMotionActive { self.emit(MagSample(raw: self.latestRaw, cal: nil, rot: nil, gravity: nil)) }
+            }
+        }
+        if mm.isDeviceMotionAvailable {
+            mm.deviceMotionUpdateInterval = hz
             let frames = CMMotionManager.availableAttitudeReferenceFrames()
-            let frame: CMAttitudeReferenceFrame = frames.contains(.xMagneticNorthZVertical) ? .xMagneticNorthZVertical : .xArbitraryCorrectedZVertical
-            mm.deviceMotionUpdateInterval = 1.0 / 50.0
+            let frame: CMAttitudeReferenceFrame = frames.contains(.xArbitraryCorrectedZVertical) ? .xArbitraryCorrectedZVertical : .xArbitraryZVertical
             mm.startDeviceMotionUpdates(using: frame, to: .main) { [weak self] dm, _ in
                 guard let self, let dm else { return }
-                let f = dm.magneticField
-                self.accuracy = Self.label(f.accuracy)
-                self.ingest(f.field.x, f.field.y, f.field.z)
+                let r = dm.attitude.rotationMatrix
+                let rot = Mat3([r.m11, r.m12, r.m13, r.m21, r.m22, r.m23, r.m31, r.m32, r.m33])
+                let g = Vec3(x: dm.gravity.x, y: dm.gravity.y, z: dm.gravity.z)
+                let mf = dm.magneticField
+                var cal: Vec3? = Vec3(x: mf.field.x, y: mf.field.y, z: mf.field.z)
+                if mf.accuracy == .uncalibrated || (cal?.length ?? 0) < 1 || !(cal?.isFinite ?? false) { cal = nil }
+                self.accuracy = Self.label(mf.accuracy)
+                if self.latestRaw == nil && cal == nil { return }
+                self.emit(MagSample(raw: self.latestRaw, cal: cal, rot: rot, gravity: g))
             }
-            activeSource = "Kalibreret (Device Motion)"
-            running = true
-        } else if mm.isMagnetometerAvailable {
-            mm.magnetometerUpdateInterval = 1.0 / 50.0
-            mm.startMagnetometerUpdates(to: .main) { [weak self] data, _ in
-                guard let self, let data else { return }
-                self.accuracy = "rå"
-                self.ingest(data.magneticField.x, data.magneticField.y, data.magneticField.z)
-            }
-            activeSource = "Rå magnetometer"
-            running = true
-        } else {
-            activeSource = "Ingen sensor"
-            running = false
         }
+        running = mm.isMagnetometerActive || mm.isDeviceMotionActive
     }
 
     func stop() {
@@ -49,26 +61,20 @@ final class MagnetSensor {
         running = false
     }
 
-    /// Data regnes kun som gyldige, hvis de er kommet inden for det seneste sekund.
-    var isLive: Bool {
-        guard running, let t = lastSampleAt else { return false }
-        return Date().timeIntervalSince(t) < 1.0
-    }
-
-    private func ingest(_ x: Double, _ y: Double, _ z: Double) {
-        guard x.isFinite, y.isFinite, z.isFinite else { return }
-        let m = (x * x + y * y + z * z).squareRoot()
-        guard m > 0.01 else { return } // nul-felt = ingen gyldig måling endnu
-        lastSampleAt = Date()
-        onSample?(m)
+    private func emit(_ s: MagSample) {
+        let now = Date()
+        lastSampleAt = now
+        rateCount += 1
+        if now.timeIntervalSince(rateStart) >= 1 { rate = rateCount; rateCount = 0; rateStart = now }
+        onSample?(s)
     }
 
     private static func label(_ a: CMMagneticFieldCalibrationAccuracy) -> String {
         switch a {
-        case .uncalibrated: return "ukalibreret"
-        case .low: return "lav"
-        case .medium: return "middel"
-        case .high: return "høj"
+        case .uncalibrated: return "–"
+        case .low: return "lav / low"
+        case .medium: return "middel / medium"
+        case .high: return "høj / high"
         @unknown default: return "?"
         }
     }

@@ -6,6 +6,7 @@ struct MindTraceApp: App {
     @StateObject private var engine: Engine
 
     init() {
+        FontLoader.registerAll()
         let s = AppSettings()
         _settings = StateObject(wrappedValue: s)
         _engine = StateObject(wrappedValue: Engine(settings: s))

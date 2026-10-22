@@ -4,7 +4,7 @@ import SwiftUI
 import UIKit
 
 /// Registrerer tryk på volumenknapperne. Et skjult MPVolumeView skjuler iOS' lydstyrke-boble,
-/// og lydstyrken sættes tilbage til midten, så både op og ned altid kan registreres.
+/// og lydstyrken sættes tilbage til 75 %, så både op og ned altid kan registreres.
 @MainActor
 final class VolumeButtons: NSObject {
     var onUp: (() -> Void)?
@@ -19,13 +19,14 @@ final class VolumeButtons: NSObject {
 
     private let session = AVAudioSession.sharedInstance()
     private var observation: NSKeyValueObservation?
-    private var last: Float = 0.5
+    private var last: Float = 0.75
     private var resetting = false
     private var resetDeadline = Date.distantPast
-    private let mid: Float = 0.5
+    private let mid: Float = 0.75  // høj nok til lydene, plads til både op og ned
 
     func activate() {
-        try? session.setCategory(.ambient, options: [.mixWithOthers])
+        // .playback: lyden spiller også når lydløs-knappen er slået til
+        try? session.setCategory(.playback, options: [.mixWithOthers])
         try? session.setActive(true)
         last = session.outputVolume
         if observation == nil {
