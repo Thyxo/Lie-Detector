@@ -82,7 +82,7 @@ final class PanelUITests: XCTestCase {
 
         let toggle = app.switches["soundToggle"]
         scrollTo(toggle)
-        toggle.switches.firstMatch.exists ? toggle.switches.firstMatch.tap() : toggle.tap()
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()   // selve kontakten i højre side
         XCTAssertFalse(app.sliders["volumeSlider"].waitForExistence(timeout: 2), "Lyd blev ikke slået fra")
     }
 }
