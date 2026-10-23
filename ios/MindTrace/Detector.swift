@@ -116,6 +116,7 @@ final class Detector {
 
     /// Nyt gæt: glem alt fra sidste scanning (grundmåling, top, live-reference),
     /// så næste grundmåling tages helt frisk.
+    /// Rører IKKE tærsklen fra "Lær min mønt" eller den lærte telefon-magnetisme (bias).
     func resetForNewGuess() {
         tracker.biasFrozen = false
         scan = nil
