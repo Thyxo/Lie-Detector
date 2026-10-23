@@ -133,7 +133,7 @@ final class Engine: ObservableObject {
             addLog(settings.tr("Rettet til \(settings.word(v))", "Changed to \(settings.word(v))"))
         }
         screen = .result(v)
-        if settings.sound { sounds.play(v) }
+        if settings.sound { sounds.play(v, volume: settings.soundVolume) }
     }
 
     func tapResult() {

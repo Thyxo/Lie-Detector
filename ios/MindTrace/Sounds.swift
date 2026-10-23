@@ -14,10 +14,12 @@ final class Sounds {
         }
     }
 
-    func play(_ v: Verdict) {
-        guard let p = players[v] else { return }
+    /// `volume` 0...1 (oven i telefonens egen lydstyrke).
+    func play(_ v: Verdict, volume: Double = 1) {
+        guard volume > 0, let p = players[v] else { return }
+        for other in players.values where other.isPlaying { other.stop() }
         p.currentTime = 0
-        p.volume = 1
+        p.volume = Float(min(1, max(0, volume)))
         p.play()
     }
 }

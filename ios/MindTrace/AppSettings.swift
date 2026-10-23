@@ -48,6 +48,7 @@ final class AppSettings: ObservableObject {
     @Published var language: AppLanguage { didSet { d.set(language.rawValue, forKey: "language") } }
     @Published var font: AppFont { didSet { d.set(font.rawValue, forKey: "font") } }
     @Published var sound: Bool { didSet { d.set(sound, forKey: "sound") } }
+    @Published var soundVolume: Double { didSet { d.set(soundVolume, forKey: "soundVolume") } }
     @Published var hasBackground: Bool { didSet { d.set(hasBackground, forKey: "hasBackground"); backgroundVersion += 1 } }
     @Published var backgroundVersion = 0
 
@@ -56,7 +57,7 @@ final class AppSettings: ObservableObject {
             "threshold2": AppSettings.defaultThreshold, "consecutive2": 3, "vibDelay": 1.0,
             "sensorMode": SensorMode.auto.rawValue, "mode": AppMode.normal.rawValue,
             "language": AppLanguage.en.rawValue, "font": AppFont.bungee.rawValue,
-            "sound": true, "hasBackground": false,
+            "sound": true, "soundVolume": 1.0, "hasBackground": false,
         ])
         threshold = d.double(forKey: "threshold2")
         consecutive = d.integer(forKey: "consecutive2")
@@ -66,6 +67,7 @@ final class AppSettings: ObservableObject {
         language = AppLanguage(rawValue: d.string(forKey: "language") ?? "") ?? .en
         font = AppFont(rawValue: d.string(forKey: "font") ?? "") ?? .bungee
         sound = d.bool(forKey: "sound")
+        soundVolume = min(1, max(0, d.double(forKey: "soundVolume")))
         hasBackground = d.bool(forKey: "hasBackground")
     }
 

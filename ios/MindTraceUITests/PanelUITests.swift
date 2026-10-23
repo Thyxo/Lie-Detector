@@ -8,7 +8,7 @@ final class PanelUITests: XCTestCase {
     override func setUp() {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-fakeSensor", "-language", "en", "-mode", "normal", "-threshold2", "40", "-hasBackground", "NO"]
+        app.launchArguments = ["-fakeSensor", "-language", "en", "-mode", "normal", "-threshold2", "40", "-hasBackground", "NO", "-sound", "YES", "-soundVolume", "1"]
         app.launch()
     }
 
@@ -68,5 +68,21 @@ final class PanelUITests: XCTestCase {
         let before = slider.value as? String
         slider.adjust(toNormalizedSliderPosition: 0.9)
         XCTAssertNotEqual(slider.value as? String, before, "Vibrations-skyderen reagerede ikke")
+    }
+
+    func testSoundToggleAndVolume() {
+        openPanel()
+        let slider = app.sliders["volumeSlider"]
+        scrollTo(slider)
+        let value = app.staticTexts["volumeValue"]
+        XCTAssertEqual(value.label, "100 %")
+        slider.adjust(toNormalizedSliderPosition: 0.3)
+        expectation(for: NSPredicate(format: "label != %@", "100 %"), evaluatedWith: value)
+        waitForExpectations(timeout: 3)
+
+        let toggle = app.switches["soundToggle"]
+        scrollTo(toggle)
+        toggle.switches.firstMatch.exists ? toggle.switches.firstMatch.tap() : toggle.tap()
+        XCTAssertFalse(app.sliders["volumeSlider"].waitForExistence(timeout: 2), "Lyd blev ikke slået fra")
     }
 }

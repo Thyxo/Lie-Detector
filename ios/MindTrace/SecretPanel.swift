@@ -152,12 +152,31 @@ struct SecretPanel: View {
             .accessibilityIdentifier("languagePicker")
 
             Toggle(s.tr("Lyd ved Sandt/Falsk", "Sound on True/False"), isOn: $s.sound)
-            HStack {
-                Button(s.tr("Hør Sandt", "Play True")) { engine.sounds.play(.sandt) }
-                Spacer()
-                Button(s.tr("Hør Falsk", "Play False")) { engine.sounds.play(.falsk) }
+                .accessibilityIdentifier("soundToggle")
+            if s.sound {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(s.tr("Lydstyrke", "Volume"))
+                        Spacer()
+                        Text("\(Int((s.soundVolume * 100).rounded())) %")
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                            .accessibilityIdentifier("volumeValue")
+                    }
+                    HStack(spacing: 10) {
+                        Image(systemName: "speaker.fill").foregroundStyle(.secondary)
+                        Slider(value: $s.soundVolume, in: 0...1, step: 0.05)
+                            .accessibilityIdentifier("volumeSlider")
+                        Image(systemName: "speaker.wave.3.fill").foregroundStyle(.secondary)
+                    }
+                }
+                HStack {
+                    Button(s.tr("Hør Sandt", "Play True")) { engine.sounds.play(.sandt, volume: s.soundVolume) }
+                    Spacer()
+                    Button(s.tr("Hør Falsk", "Play False")) { engine.sounds.play(.falsk, volume: s.soundVolume) }
+                }
+                .buttonStyle(.borderless)
             }
-            .buttonStyle(.borderless)
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(s.tr("Skrift", "Font"))
