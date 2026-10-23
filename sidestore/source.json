@@ -1,8 +1,8 @@
 {
   "name": "MindTrace",
   "identifier": "dk.thyxo.mindtrace.source",
-  "subtitle": "Løgnedetektor med magnet",
-  "description": "Kilde til MindTrace – opdateres automatisk ved hver ny build.",
+  "subtitle": "Magnetic lie detector",
+  "description": "MindTrace source – updated automatically with every new build.",
   "iconURL": "https://raw.githubusercontent.com/Thyxo/Lie-Detector/main/ios/MindTrace/Assets.xcassets/AppIcon.appiconset/icon-1024.png",
   "website": "https://github.com/Thyxo/Lie-Detector",
   "tintColor": "#3BC4CA",
@@ -11,13 +11,22 @@
       "name": "MindTrace",
       "bundleIdentifier": "dk.thyxo.mindtrace",
       "developerName": "Thyxo",
-      "subtitle": "Sandt eller falsk?",
-      "localizedDescription": "Tryllerekvisit: telefonen føres over tilskuerens hånd og afslører med magnetometeret, om der gemmer sig en magnet. Magnet = Falsk.",
+      "subtitle": "True or false?",
+      "localizedDescription": "Magic prop: move the phone over the spectator's hand. It secretly buzzes to you whether the magnetic coin is there (2 = coin, 1 = no coin), and you reveal True or False with the volume buttons. English and Danish.",
       "iconURL": "https://raw.githubusercontent.com/Thyxo/Lie-Detector/main/ios/MindTrace/Assets.xcassets/AppIcon.appiconset/icon-1024.png",
       "tintColor": "#3BC4CA",
       "category": "entertainment",
       "screenshots": [],
       "versions": [
+        {
+          "version": "1.0.13",
+          "buildVersion": "13",
+          "date": "2026-10-23T13:58:59Z",
+          "localizedDescription": "Build 13",
+          "downloadURL": "https://github.com/Thyxo/Lie-Detector/releases/download/build-13/MindTrace.ipa",
+          "size": 3116598,
+          "minOSVersion": "17.0"
+        },
         {
           "version": "1.0.9",
           "buildVersion": "9",
@@ -53,21 +62,13 @@
           "downloadURL": "https://github.com/Thyxo/Lie-Detector/releases/download/build-4/MindTrace.ipa",
           "size": 133492,
           "minOSVersion": "17.0"
-        },
-        {
-          "version": "1.0.3",
-          "buildVersion": "3",
-          "date": "2026-10-22T14:01:41Z",
-          "localizedDescription": "Build 3",
-          "downloadURL": "https://github.com/Thyxo/Lie-Detector/releases/download/build-3/MindTrace.ipa",
-          "size": 133492,
-          "minOSVersion": "17.0"
         }
       ],
       "appPermissions": {
         "entitlements": [],
         "privacy": {
-          "NSMotionUsageDescription": "Bruges til at måle magnetfeltet."
+          "NSMotionUsageDescription": "Used to measure the magnetic field.",
+          "NSPhotoLibraryUsageDescription": "Choose an image for secret mode."
         }
       }
     }
