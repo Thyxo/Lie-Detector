@@ -28,6 +28,8 @@ targets:
         INFOPLIST_KEY_NSMotionUsageDescription: "Bruges til at måle magnetfeltet."
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Vælg et billede til hemmelig tilstand."
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES: "AppIconGlow AppIconClassic"
+        ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: YES
         CODE_SIGNING_ALLOWED: NO
         CODE_SIGNING_REQUIRED: NO
 

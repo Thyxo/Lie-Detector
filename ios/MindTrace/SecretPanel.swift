@@ -7,6 +7,8 @@ struct SecretPanel: View {
     @State private var openedAt = Date()
     @State private var photo: PhotosPickerItem?
     @State private var showAdvanced = false
+    @State private var icon: AppIconChoice = .fingerprint
+    @State private var iconError = false
 
     var body: some View {
         NavigationStack {
@@ -33,7 +35,7 @@ struct SecretPanel: View {
                 }
             }
         }
-        .onAppear { openedAt = Date() }
+        .onAppear { openedAt = Date(); icon = AppIconChoice.current }
         .onChange(of: photo) { _, item in
             guard let item else { return }
             Task {
@@ -158,7 +160,40 @@ struct SecretPanel: View {
                 }
             }
             .padding(.vertical, 4)
+            iconPicker
         }
+    }
+
+    // MARK: App-ikon
+    private var iconPicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(s.tr("App-ikon", "App icon"))
+            HStack(spacing: 12) {
+                ForEach(AppIconChoice.allCases) { c in
+                    Button {
+                        let previous = icon
+                        icon = c
+                        c.apply { ok in if !ok { icon = previous; iconError = true } }
+                    } label: {
+                        VStack(spacing: 4) {
+                            Image(c.preview)
+                                .resizable()
+                                .frame(width: 64, height: 64)
+                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .stroke(icon == c ? Color.accentColor : .clear, lineWidth: 3))
+                            Text(c.label(s)).font(.caption2).foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            if iconError {
+                Text(s.tr("Ikonet kunne ikke skiftes.", "Could not change the icon.")).font(.caption).foregroundStyle(.red)
+            }
+        }
+        .padding(.vertical, 4)
     }
 
     // MARK: Avanceret
