@@ -51,6 +51,8 @@ jobs:
         run: |
           mkdir -p Payload
           cp -R build/Build/Products/Release-iphoneos/MindTrace.app Payload/
+          plutil -p Payload/MindTrace.app/Info.plist | grep -A12 "CFBundleIcons\"" | head -40
+          plutil -p Payload/MindTrace.app/Info.plist | grep -q "AppIconGlow" || { echo "Alternative ikoner mangler"; exit 1; }
           zip -qry MindTrace.ipa Payload
           ls -lh MindTrace.ipa
 
