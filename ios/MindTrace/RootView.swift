@@ -27,6 +27,23 @@ struct RootView: View {
             }
             .ignoresSafeArea()
 
+            // Hemmelig grå prik øverst til venstre: vises = mønt fundet i denne scanning
+            if settings.coinDot && engine.coinDetected && showsDotScreen {
+                VStack {
+                    HStack {
+                        Circle()
+                            .fill(Color(white: 0.4))
+                            .frame(width: 6, height: 6)
+                            .padding(.leading, 22)
+                            .padding(.top, 10)
+                            .accessibilityIdentifier("coinDot")
+                        Spacer()
+                    }
+                    Spacer()
+                }
+                .allowsHitTesting(false)
+            }
+
             // Skjult volumenvisning (skjuler iOS' lydstyrke-boble)
             HiddenVolumeView(view: engine.volume.volumeView)
                 .frame(width: 1, height: 1)
@@ -54,6 +71,11 @@ struct RootView: View {
         }
         .onChange(of: phase) { _, p in if p == .active { engine.becameActive() } }
         .onAppear { engine.becameActive() }
+    }
+
+    /// Prikken vises kun mens der scannes (Tænker-skærm eller hemmelig tilstand).
+    private var showsDotScreen: Bool {
+        settings.mode == .hidden ? engine.hiddenBusy : engine.screen == .thinking
     }
 
     private func secretTap() {

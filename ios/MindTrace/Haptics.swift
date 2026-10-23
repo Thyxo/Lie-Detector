@@ -23,12 +23,13 @@ final class Haptics {
 
     /// Én lang vibration (ingen sensordata).
     @discardableResult
-    func long() -> Double {
+    func long(strength: Double = 1) -> Double {
+        let k = Float(min(1, max(0.1, strength)))
         if let engine {
             do {
                 try engine.start()
                 let e = CHHapticEvent(eventType: .hapticContinuous, parameters: [
-                    CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0),
+                    CHHapticEventParameter(parameterID: .hapticIntensity, value: k),
                     CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.3),
                 ], relativeTime: 0, duration: 0.8)
                 try engine.makePlayer(with: CHHapticPattern(events: [e], parameters: [])).start(atTime: 0)
@@ -41,13 +42,14 @@ final class Haptics {
 
     /// `count` kraftige bump. Returnerer hvor lang tid mønstret varer (s).
     @discardableResult
-    func pulses(_ count: Int) -> Double {
+    func pulses(_ count: Int, strength: Double = 1) -> Double {
         let len = 0.22, gap = 0.18
+        let k = Float(min(1, max(0.1, strength)))
         if let engine {
             var events: [CHHapticEvent] = []
             for i in 0..<count {
                 events.append(CHHapticEvent(eventType: .hapticContinuous, parameters: [
-                    CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0),
+                    CHHapticEventParameter(parameterID: .hapticIntensity, value: k),
                     CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.6),
                 ], relativeTime: Double(i) * (len + gap), duration: len))
             }

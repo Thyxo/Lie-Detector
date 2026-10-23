@@ -114,6 +114,16 @@ final class Detector {
 
     func cancelScan() { tracker.biasFrozen = false; scan = nil }
 
+    /// Nyt gæt: glem alt fra sidste scanning (grundmåling, top, live-reference),
+    /// så næste grundmåling tages helt frisk.
+    func resetForNewGuess() {
+        tracker.biasFrozen = false
+        scan = nil
+        idle.removeAll()
+        liveRef = nil
+        liveAnomaly = nil
+    }
+
     func resetLive() { liveRef = current }
 
     /// Tærskel ud fra "Lær min mønt": udslag uden mønt (støj) og med mønt.

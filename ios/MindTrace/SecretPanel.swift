@@ -74,12 +74,30 @@ struct SecretPanel: View {
                     .accessibilityIdentifier("vibDelaySlider")
             }
 
-            HStack {
-                Button(s.tr("Test: mønt (2)", "Test: coin (2)")) { engine.haptics.pulses(2) }
-                Spacer()
-                Button(s.tr("Test: ingen (1)", "Test: none (1)")) { engine.haptics.pulses(1) }
+            Toggle(s.tr("Vibration", "Vibration"), isOn: $s.vibEnabled)
+                .accessibilityIdentifier("vibToggle")
+            if s.vibEnabled {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(s.tr("Vibrationskraft", "Vibration strength"))
+                        Spacer()
+                        Text("\(Int((s.vibStrength * 100).rounded())) %")
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                            .accessibilityIdentifier("vibStrengthValue")
+                    }
+                    Slider(value: $s.vibStrength, in: 0.1...1, step: 0.05)
+                        .accessibilityIdentifier("vibStrengthSlider")
+                }
+                HStack {
+                    Button(s.tr("Test: mønt (2)", "Test: coin (2)")) { engine.haptics.pulses(2, strength: s.vibStrength) }
+                    Spacer()
+                    Button(s.tr("Test: ingen (1)", "Test: none (1)")) { engine.haptics.pulses(1, strength: s.vibStrength) }
+                }
+                .buttonStyle(.borderless)
             }
-            .buttonStyle(.borderless)
+            Toggle(s.tr("Hemmelig grå prik (øverst til venstre)", "Secret grey dot (top left)"), isOn: $s.coinDot)
+                .accessibilityIdentifier("dotToggle")
 
             PhotosPicker(selection: $photo, matching: .images) {
                 Label(s.hasBackground ? s.tr("Skift egen baggrund", "Change own background")
@@ -97,11 +115,13 @@ struct SecretPanel: View {
                 Text(s.tr("Billedet kunne ikke indlæses.", "Could not load the image.")).font(.caption).foregroundStyle(.red)
             }
         } header: { Text(s.tr("Tilstand", "Mode")) } footer: {
-            Text(s.mode == .hidden
+            Text((s.mode == .hidden
                  ? s.tr("Hemmelig: din baggrund (eller sort). Tryk for at scanne. Telefonen vibrerer: 2 bump = mønt, 1 bump = ingen mønt – hvert sekund, indtil du trykker igen.",
                         "Secret: your background (or black). Tap to scan. The phone buzzes: 2 = coin, 1 = no coin – every second until you tap again.")
                  : s.tr("Normal: tryk på startskærmen → Tænker. Telefonen vibrerer: 2 bump = mønt, 1 bump = ingen mønt (1 lang = ingen sensordata). Tryk volumen op = Sandt, ned = Falsk. Egen baggrund bruges i Hemmelig.",
                         "Normal: tap the start screen → Thinking. The phone buzzes: 2 = coin, 1 = no coin (1 long = no sensor data). Press volume up = True, down = False. Own background is used in Secret."))
+                 + "\n\n" + s.tr("Grå prik: vises øverst til venstre under scanning, når der er mønt – væk = ingen mønt. Hvert nyt gæt starter med en frisk måling.",
+                                  "Grey dot: shown top left while scanning when there is a coin – gone = no coin. Every new guess starts with a fresh reading."))
         }
     }
 

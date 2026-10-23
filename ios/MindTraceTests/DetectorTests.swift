@@ -112,3 +112,26 @@ final class ScanStatusTests: XCTestCase {
         XCTAssertEqual(d.scanStatus, true)               // forbliver fundet
     }
 }
+
+final class NewGuessTests: XCTestCase {
+    func testNewGuessStartsFresh() {
+        let d = Detector()
+        d.threshold = 40
+        let e = Vec3(x: 18, y: 2, z: -42)
+        func s(_ m: Vec3 = .zero) -> MagSample { MagSample(raw: e + m, cal: e + m, rot: .identity, gravity: Vec3(x: 0, y: 0, z: -1)) }
+        // Gæt 1: mønt findes
+        for _ in 0..<40 { d.push(s()) }
+        d.beginScan()
+        for _ in 0..<30 { d.push(s(Vec3(x: 0, y: 0, z: 200))) }
+        XCTAssertEqual(d.scanStatus, true)
+        // Nyt gæt: nulstil, frisk grundmåling – ingen gammel "mønt" hænger ved
+        d.resetForNewGuess()
+        XCTAssertNil(d.scanStatus)
+        XCTAssertFalse(d.beginScan())                    // ingen gamle målinger at bygge på
+        for _ in 0..<30 { d.push(s()) }
+        XCTAssertTrue(d.beginScan())
+        for _ in 0..<30 { d.push(s()) }
+        XCTAssertEqual(d.scanStatus, false)
+        XCTAssertLessThan(d.scanPeak, 1)
+    }
+}

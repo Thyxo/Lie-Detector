@@ -43,6 +43,9 @@ final class AppSettings: ObservableObject {
     @Published var threshold: Double { didSet { d.set(threshold, forKey: "threshold2") } }
     @Published var consecutive: Int { didSet { d.set(consecutive, forKey: "consecutive2") } }
     @Published var vibDelay: Double { didSet { d.set(vibDelay, forKey: "vibDelay") } }
+    @Published var vibEnabled: Bool { didSet { d.set(vibEnabled, forKey: "vibEnabled") } }
+    @Published var vibStrength: Double { didSet { d.set(vibStrength, forKey: "vibStrength") } }
+    @Published var coinDot: Bool { didSet { d.set(coinDot, forKey: "coinDot") } }
     @Published var sensorMode: SensorMode { didSet { d.set(sensorMode.rawValue, forKey: "sensorMode") } }
     @Published var mode: AppMode { didSet { d.set(mode.rawValue, forKey: "mode") } }
     @Published var language: AppLanguage { didSet { d.set(language.rawValue, forKey: "language") } }
@@ -55,6 +58,7 @@ final class AppSettings: ObservableObject {
     init() {
         d.register(defaults: [
             "threshold2": AppSettings.defaultThreshold, "consecutive2": 3, "vibDelay": 1.0,
+            "vibEnabled": true, "vibStrength": 1.0, "coinDot": false,
             "sensorMode": SensorMode.auto.rawValue, "mode": AppMode.normal.rawValue,
             "language": AppLanguage.en.rawValue, "font": AppFont.bungee.rawValue,
             "sound": true, "soundVolume": 1.0, "hasBackground": false,
@@ -62,6 +66,9 @@ final class AppSettings: ObservableObject {
         threshold = d.double(forKey: "threshold2")
         consecutive = d.integer(forKey: "consecutive2")
         vibDelay = d.double(forKey: "vibDelay")
+        vibEnabled = d.bool(forKey: "vibEnabled")
+        vibStrength = min(1, max(0.1, d.double(forKey: "vibStrength")))
+        coinDot = d.bool(forKey: "coinDot")
         sensorMode = SensorMode(rawValue: d.string(forKey: "sensorMode") ?? "") ?? .auto
         mode = AppMode(rawValue: d.string(forKey: "mode") ?? "") ?? .normal
         language = AppLanguage(rawValue: d.string(forKey: "language") ?? "") ?? .en

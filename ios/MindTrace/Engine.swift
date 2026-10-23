@@ -35,6 +35,8 @@ final class Engine: ObservableObject {
     @Published private(set) var log: [LogEntry] = []
     @Published var panelOpen = false { didSet { if panelOpen { stopScan(); resetLive() } } }
     @Published private(set) var hiddenBusy = false
+    /// Mønt fundet i den igangværende scanning (til den hemmelige prik). Ændres kun når status skifter.
+    @Published private(set) var coinDetected = false
 
     /// Live-måling til menuen. Eget objekt, så kun bjælken tegnes om – ikke hele menuen.
     let readout = LiveReadout()
@@ -92,6 +94,10 @@ final class Engine: ObservableObject {
     // MARK: Sensor
     private func sample(_ s: MagSample) {
         detector.push(s)
+        if detector.isScanning {
+            let c = detector.scanStatus ?? false
+            if c != coinDetected { coinDetected = c }
+        }
         guard panelOpen, let a = detector.liveAnomaly else { return }
         livePeak = max(livePeak, a)
         // Højst 10 opdateringer i sekundet, og kun når tallet faktisk ændrer sig.
@@ -156,11 +162,19 @@ final class Engine: ObservableObject {
     }
 
     // MARK: Scanning + vibration
+    /// Hvert nyt gæt nulstiller målingen helt: grundmålingen tages frisk over ~0,3 s efter trykket.
+    private let baselineWindow = 0.3
+
     private func startScan() {
         scanToken += 1
         let my = scanToken
-        detector.beginScan()
-        DispatchQueue.main.asyncAfter(deadline: .now() + settings.vibDelay) { [weak self] in
+        coinDetected = false
+        detector.resetForNewGuess()
+        DispatchQueue.main.asyncAfter(deadline: .now() + baselineWindow) { [weak self] in
+            guard let self, self.scanToken == my else { return }
+            self.detector.beginScan()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + max(baselineWindow + 0.2, settings.vibDelay)) { [weak self] in
             self?.buzzRound(my, round: 0)
         }
     }
@@ -168,11 +182,14 @@ final class Engine: ObservableObject {
     private func buzzRound(_ my: Int, round: Int) {
         guard my == scanToken, round < maxBuzzRounds else { return }
         let length: Double
-        if !sensor.isLive && detector.scanStatus == nil {
-            length = haptics.long()                       // ingen sensordata
+        let k = settings.vibStrength
+        if !settings.vibEnabled {
+            length = 1.0                                  // vibration slået fra – fortsæt bare takten
+        } else if !sensor.isLive && detector.scanStatus == nil {
+            length = haptics.long(strength: k)            // ingen sensordata
         } else {
             let coin = detector.scanStatus ?? false
-            length = haptics.pulses(coin ? 2 : 1)
+            length = haptics.pulses(coin ? 2 : 1, strength: k)
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + length + 1.0) { [weak self] in
             self?.buzzRound(my, round: round + 1)
@@ -183,6 +200,7 @@ final class Engine: ObservableObject {
         scanToken += 1
         if detector.isScanning { _ = detector.endScan() }
         hiddenBusy = false
+        if coinDetected { coinDetected = false }
     }
 
     private func logText(_ v: Verdict?, status: Bool?, peak: Double) -> String {
@@ -215,6 +233,7 @@ final class Engine: ObservableObject {
                 guard let self else { return }
                 let r = self.detector.endScan()
                 self.learnRunning = false
+                self.coinDetected = false
                 if step == .noise { self.learnNoise = r.peak } else { self.learnCoin = r.peak }
                 self.finishLearnIfReady()
             }

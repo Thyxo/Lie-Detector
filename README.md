@@ -36,7 +36,8 @@ Sort skærm eller dit eget billede (fx skærmbillede af hjemmeskærmen). Tryk �
 - **Sensor**: live-bjælke med udslag, top og tærskel-streg + "MAGNET"/"ingen magnet".
 - **Følsomhed**: tærskel i µT (standard **40 µT**, knap "Standard"). Under tærsklen = ingen mønt.
 - **Lær min mønt (anbefalet)**: 1) 3 s uden mønt, 2) 3 s hen over hånden med mønt → tærsklen sættes automatisk.
-- **Vibration og tilstand**: Normal/Hemmelig, hvornår vibrationen starter (standard 1 s), test-vibrationer, billede.
+- **Tilstand**: Normal/Hemmelig, hvornår vibrationen starter (standard 1 s), vibration til/fra + **vibrationskraft**, test-vibrationer, **hemmelig grå prik** (øverst til venstre: vises = mønt, væk = ingen), egen baggrund.
+- Hvert nyt gæt nulstiller målingen og tager en frisk grundmåling (~0,3 s efter trykket).
 - **Udseende og lyd**: English (standard)/dansk, lyd til/fra + lydstyrke (+ test), 6 skrifter, **app-ikon** (Fingeraftryk, Neon, Klassisk – iOS viser en kort besked, når ikonet skiftes).
 - **Avanceret**: målinger i træk, målemetode, kalibrering, log.
 

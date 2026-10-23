@@ -8,7 +8,7 @@ final class PanelUITests: XCTestCase {
     override func setUp() {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-fakeSensor", "-language", "en", "-mode", "normal", "-threshold2", "40", "-hasBackground", "NO", "-sound", "YES", "-soundVolume", "1"]
+        app.launchArguments = ["-fakeSensor", "-language", "en", "-mode", "normal", "-threshold2", "40", "-hasBackground", "NO", "-sound", "YES", "-soundVolume", "1", "-vibEnabled", "YES", "-vibStrength", "1", "-coinDot", "NO"]
         app.launch()
     }
 
@@ -84,5 +84,30 @@ final class PanelUITests: XCTestCase {
         scrollTo(toggle)
         toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()   // selve kontakten i højre side
         XCTAssertFalse(app.sliders["volumeSlider"].waitForExistence(timeout: 2), "Lyd blev ikke slået fra")
+    }
+
+    func testVibrationStrengthAndOff() {
+        openPanel()
+        let slider = app.sliders["vibStrengthSlider"]
+        scrollTo(slider)
+        let value = app.staticTexts["vibStrengthValue"]
+        XCTAssertEqual(value.label, "100 %")
+        slider.adjust(toNormalizedSliderPosition: 0.2)
+        expectation(for: NSPredicate(format: "label != %@", "100 %"), evaluatedWith: value)
+        waitForExpectations(timeout: 3)
+        let toggle = app.switches["vibToggle"]
+        scrollTo(toggle)
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        XCTAssertFalse(app.sliders["vibStrengthSlider"].waitForExistence(timeout: 2), "Vibration blev ikke slået fra")
+    }
+
+    func testCoinDotToggle() {
+        openPanel()
+        let toggle = app.switches["dotToggle"]
+        scrollTo(toggle)
+        let before = toggle.value as? String
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        expectation(for: NSPredicate(format: "value != %@", before ?? ""), evaluatedWith: toggle)
+        waitForExpectations(timeout: 3)
     }
 }
