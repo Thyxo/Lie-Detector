@@ -55,7 +55,7 @@ final class AppSettings: ObservableObject {
         d.register(defaults: [
             "threshold2": AppSettings.defaultThreshold, "consecutive2": 3, "vibDelay": 1.0,
             "sensorMode": SensorMode.auto.rawValue, "mode": AppMode.normal.rawValue,
-            "language": AppLanguage.da.rawValue, "font": AppFont.bungee.rawValue,
+            "language": AppLanguage.en.rawValue, "font": AppFont.bungee.rawValue,
             "sound": true, "hasBackground": false,
         ])
         threshold = d.double(forKey: "threshold2")
@@ -63,7 +63,7 @@ final class AppSettings: ObservableObject {
         vibDelay = d.double(forKey: "vibDelay")
         sensorMode = SensorMode(rawValue: d.string(forKey: "sensorMode") ?? "") ?? .auto
         mode = AppMode(rawValue: d.string(forKey: "mode") ?? "") ?? .normal
-        language = AppLanguage(rawValue: d.string(forKey: "language") ?? "") ?? .da
+        language = AppLanguage(rawValue: d.string(forKey: "language") ?? "") ?? .en
         font = AppFont(rawValue: d.string(forKey: "font") ?? "") ?? .bungee
         sound = d.bool(forKey: "sound")
         hasBackground = d.bool(forKey: "hasBackground")

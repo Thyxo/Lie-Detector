@@ -7,7 +7,8 @@ final class MagnetSensor {
     private let mm = CMMotionManager()
     private var latestRaw: Vec3?
     private(set) var running = false
-    private(set) var accuracy: String = "—"
+    /// -1 = ukalibreret/ukendt, 0 = lav, 1 = middel, 2 = høj
+    private(set) var accuracyLevel: Int = -1
     private(set) var lastSampleAt: Date?
     private(set) var rate: Int = 0
     private var rateCount = 0
@@ -47,7 +48,7 @@ final class MagnetSensor {
                 let mf = dm.magneticField
                 var cal: Vec3? = Vec3(x: mf.field.x, y: mf.field.y, z: mf.field.z)
                 if mf.accuracy == .uncalibrated || (cal?.length ?? 0) < 1 || !(cal?.isFinite ?? false) { cal = nil }
-                self.accuracy = Self.label(mf.accuracy)
+                self.accuracyLevel = Self.level(mf.accuracy)
                 if self.latestRaw == nil && cal == nil { return }
                 self.emit(MagSample(raw: self.latestRaw, cal: cal, rot: rot, gravity: g))
             }
@@ -69,13 +70,13 @@ final class MagnetSensor {
         onSample?(s)
     }
 
-    private static func label(_ a: CMMagneticFieldCalibrationAccuracy) -> String {
+    private static func level(_ a: CMMagneticFieldCalibrationAccuracy) -> Int {
         switch a {
-        case .uncalibrated: return "–"
-        case .low: return "lav / low"
-        case .medium: return "middel / medium"
-        case .high: return "høj / high"
-        @unknown default: return "?"
+        case .uncalibrated: return -1
+        case .low: return 0
+        case .medium: return 1
+        case .high: return 2
+        @unknown default: return -1
         }
     }
 }

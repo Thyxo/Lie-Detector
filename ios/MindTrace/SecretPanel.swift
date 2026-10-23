@@ -61,6 +61,15 @@ struct SecretPanel: View {
         }
     }
 
+    private var accuracyText: String {
+        switch engine.sensor.accuracyLevel {
+        case 0: return s.tr("lav", "low")
+        case 1: return s.tr("middel", "medium")
+        case 2: return s.tr("høj", "high")
+        default: return "—"
+        }
+    }
+
     private var badge: (text: String, color: Color) {
         if !engine.sensor.hardwareAvailable { return (s.tr("INGEN SENSOR", "NO SENSOR"), .red) }
         if !engine.sensorLive { return (s.tr("VENTER PÅ SENSOR", "WAITING FOR SENSOR"), .orange) }
@@ -134,8 +143,8 @@ struct SecretPanel: View {
     private var looksSection: some View {
         Section(s.tr("Udseende og lyd", "Look and sound")) {
             Picker(s.tr("Sprog", "Language"), selection: $s.language) {
-                Text("Dansk").tag(AppLanguage.da)
                 Text("English").tag(AppLanguage.en)
+                Text("Dansk").tag(AppLanguage.da)
             }
             .pickerStyle(.segmented)
             Toggle(s.tr("Lyd ved Sandt/Falsk", "Sound on True/False"), isOn: $s.sound)
@@ -205,7 +214,7 @@ struct SecretPanel: View {
                     Text(s.tr("Auto (tåler drejning)", "Auto (ignores turning)")).tag(SensorMode.auto)
                     Text(s.tr("Rå (hold roligt)", "Raw (hold still)")).tag(SensorMode.raw)
                 }
-                HStack { Text(s.tr("Kalibrering", "Calibration")); Spacer(); Text(engine.sensor.accuracy).foregroundStyle(.secondary) }
+                HStack { Text(s.tr("Kalibrering", "Calibration")); Spacer(); Text(accuracyText).foregroundStyle(.secondary) }
                 HStack { Text(s.tr("Målinger/s", "Samples/s")); Spacer(); Text("\(engine.sensor.rate)").foregroundStyle(.secondary) }
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Log").font(.subheadline.bold())
