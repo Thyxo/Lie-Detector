@@ -13,9 +13,15 @@ final class PanelUITests: XCTestCase {
     }
 
     private func openPanel() {
+        _ = app.staticTexts["True or false?"].waitForExistence(timeout: 5)
         let corner = app.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.04))
-        for _ in 0..<5 { corner.tap() }
-        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 5), "Menuen åbnede ikke")
+        var opened = false
+        for _ in 0..<3 where !opened {
+            for _ in 0..<5 { corner.tap() }
+            opened = app.buttons["doneButton"].waitForExistence(timeout: 4)
+            if !opened { sleep(3) }   // lad tap-vinduet (2,5 s) løbe ud før næste forsøg
+        }
+        XCTAssertTrue(opened, "Menuen åbnede ikke")
         sleep(1)
     }
 
