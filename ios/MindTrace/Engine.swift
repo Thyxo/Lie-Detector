@@ -16,6 +16,13 @@ struct LogEntry: Identifiable {
 
 enum LearnStep: Equatable { case idle, noise, coin, done }
 
+@MainActor
+final class LiveReadout: ObservableObject {
+    @Published var value: Double = 0
+    @Published var peak: Double = 0
+    @Published var live = false
+}
+
 /// Rutinen: "Har du mønten i hånden?" – tilskueren svarer ja/nej.
 /// Telefonen afgør IKKE selv. Den vibrerer i performerens hånd:
 ///   2 bump = mønt i hånden, 1 bump = ingen mønt, 1 lang = ingen sensordata
@@ -29,10 +36,9 @@ final class Engine: ObservableObject {
     @Published var panelOpen = false { didSet { if panelOpen { stopScan(); resetLive() } } }
     @Published private(set) var hiddenBusy = false
 
-    // Live-visning i panelet
-    @Published private(set) var liveAnomaly: Double?
-    @Published private(set) var liveMax: Double = 0
-    @Published private(set) var sensorLive = false
+    /// Live-måling til menuen. Eget objekt, så kun bjælken tegnes om – ikke hele menuen.
+    let readout = LiveReadout()
+    private var livePeak = 0.0
 
     // Lær min mønt
     @Published private(set) var learnStep: LearnStep = .idle
@@ -72,7 +78,7 @@ final class Engine: ObservableObject {
             .sink { [weak self] _ in
                 guard let self else { return }
                 let live = self.sensor.isLive
-                if live != self.sensorLive { self.sensorLive = live }
+                if live != self.readout.live { self.readout.live = live }
             }
             .store(in: &bag)
     }
@@ -86,14 +92,23 @@ final class Engine: ObservableObject {
     // MARK: Sensor
     private func sample(_ s: MagSample) {
         detector.push(s)
-        if panelOpen, let a = detector.liveAnomaly {
-            liveMax = max(liveMax, a)
-            let now = Date()
-            if now.timeIntervalSince(lastPublish) > 0.08 { lastPublish = now; liveAnomaly = a }
-        }
+        guard panelOpen, let a = detector.liveAnomaly else { return }
+        livePeak = max(livePeak, a)
+        // Højst 10 opdateringer i sekundet, og kun når tallet faktisk ændrer sig.
+        let now = Date()
+        guard now.timeIntervalSince(lastPublish) >= 0.1 else { return }
+        lastPublish = now
+        let v = a.rounded(), p = livePeak.rounded()
+        if readout.value != v { readout.value = v }
+        if readout.peak != p { readout.peak = p }
     }
 
-    func resetLive() { detector.resetLive(); liveMax = 0; liveAnomaly = 0 }
+    func resetLive() {
+        detector.resetLive()
+        livePeak = 0
+        readout.value = 0
+        readout.peak = 0
+    }
 
     // MARK: Normal tilstand
     func tapStart() {

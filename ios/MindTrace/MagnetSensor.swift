@@ -16,7 +16,11 @@ final class MagnetSensor {
 
     var onSample: ((MagSample) -> Void)?
 
-    var hardwareAvailable: Bool { mm.isMagnetometerAvailable || mm.isDeviceMotionAvailable }
+    /// Kun til automatiske UI-tests (startargument -fakeSensor): 100 kunstige målinger i sekundet.
+    private let fake = ProcessInfo.processInfo.arguments.contains("-fakeSensor")
+    private var fakeTimer: Timer?
+
+    var hardwareAvailable: Bool { fake || mm.isMagnetometerAvailable || mm.isDeviceMotionAvailable }
 
     var isLive: Bool {
         guard running, let t = lastSampleAt else { return false }
@@ -25,6 +29,17 @@ final class MagnetSensor {
 
     func start() {
         guard !running else { return }
+        if fake {
+            var t = 0.0
+            fakeTimer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [weak self] _ in
+                t += 0.01
+                let n = Vec3(x: sin(t * 7) * 0.5, y: cos(t * 5) * 0.5, z: sin(t * 3) * 0.5)
+                let e = Vec3(x: 18, y: 2, z: -42) + n
+                self?.emit(MagSample(raw: e, cal: e, rot: .identity, gravity: Vec3(x: 0, y: 0, z: -1)))
+            }
+            running = true
+            return
+        }
         let hz = 1.0 / 100.0
         if mm.isMagnetometerAvailable {
             mm.magnetometerUpdateInterval = hz

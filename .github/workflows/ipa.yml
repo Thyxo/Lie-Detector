@@ -31,6 +31,22 @@ jobs:
           [ $rc -eq 0 ] || tail -n 60 test.log
           exit $rc
 
+      - name: UI tests (simulator, menu controls)
+        working-directory: ios
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)['devices']
+          c=[(r,x) for r,v in d.items() if 'iOS' in r for x in v if x['name'].startswith('iPhone')]
+          c.sort(key=lambda t:(int(t[0].split('iOS-')[1].split('-')[0]), t[1]['name']))
+          print(c[-1][1]['udid']); print(c[-1][0], c[-1][1]['name'], file=sys.stderr)")
+          rc=0
+          xcodebuild test -project MindTrace.xcodeproj -scheme MindTrace -destination "id=$UDID" \
+            CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=NO > uitest.log 2>&1 || rc=$?
+          grep -E "Test Case|error:|failed|TEST SUCCEEDED|TEST FAILED" uitest.log | tail -n 60 || true
+          [ $rc -eq 0 ] || tail -n 80 uitest.log
+          exit $rc
+
       - name: Build (unsigned)
         working-directory: ios
         run: |

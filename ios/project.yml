@@ -47,6 +47,19 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         CODE_SIGN_IDENTITY: "-"
 
+  # UI-tests på iPhone-simulator
+  MindTraceUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [MindTraceUITests]
+    dependencies:
+      - target: MindTrace
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dk.thyxo.mindtrace.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: MindTrace
+
 schemes:
   MindTraceLogicTests:
     build:
@@ -58,3 +71,6 @@ schemes:
     build:
       targets:
         MindTrace: all
+        MindTraceUITests: [test]
+    test:
+      targets: [MindTraceUITests]
