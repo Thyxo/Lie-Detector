@@ -19,6 +19,7 @@ struct SecretPanel: View {
             Form {
                 modeSection
                 sensitivitySection
+                textsSection
                 looksSection
                 advancedSection
                 Section {
@@ -27,6 +28,7 @@ struct SecretPanel: View {
                     Text(s.tr("Åbn menuen: 5 hurtige tryk øverst til højre.", "Open menu: 5 quick taps top right."))
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle("MindTrace")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -158,6 +160,53 @@ struct SecretPanel: View {
         } header: { Text(s.tr("Følsomhed", "Sensitivity")) } footer: {
             Text(s.tr("Før toppen af telefonen hen over mønten og se, om bjælken går over den hvide streg (tærsklen). Vibrerer den \"mønt\" for tit: skru op. Opdager den ikke mønten: skru ned – eller brug \"Lær min mønt\".",
                       "Move the top of the phone over the coin and check that the bar passes the white line (threshold). Too many false coins: raise it. Misses the coin: lower it – or use \"Learn my coin\"."))
+        }
+    }
+
+    // MARK: Egne resultattekster
+    private var textsSection: some View {
+        Section {
+            resultField(.sandt, text: $s.customTrue, id: "customTrueField")
+            resultField(.falsk, text: $s.customFalse, id: "customFalseField")
+            VStack(alignment: .leading, spacing: 6) {
+                Text(s.tr("Hurtige valg", "Quick picks")).font(.caption).foregroundStyle(.secondary)
+                ForEach(0..<presets.count, id: \.self) { i in
+                    let p = presets[i]
+                    Button("\(p.0)  /  \(p.1)") { s.customTrue = p.0; s.customFalse = p.1 }
+                        .buttonStyle(.borderless)
+                }
+            }
+            if !s.customTrue.isEmpty || !s.customFalse.isEmpty {
+                Button(s.tr("Brug standard (\(s.word(.sandt)) / \(s.word(.falsk)))", "Use default (\(s.word(.sandt)) / \(s.word(.falsk)))")) {
+                    s.customTrue = ""; s.customFalse = ""
+                }
+            }
+        } header: { Text(s.tr("Resultattekster", "Result texts")) } footer: {
+            Text(s.tr("Tomt felt = standardtekst. Skriv fx tilskuerens navn: \"Mette lyver!\". Lange tekster deles på op til 3 linjer.",
+                      "Empty field = default text. Try the spectator's name: \"Mette is lying!\". Long texts wrap to up to 3 lines."))
+        }
+    }
+
+    private var presets: [(String, String)] {
+        s.language == .en
+            ? [("TRUTH", "LIE!"), ("Honest", "Liar!"), ("✓ TRUE", "✗ FALSE")]
+            : [("SANDHED", "LØGN!"), ("Ærlig", "Lyver!"), ("✓ SANDT", "✗ FALSK")]
+    }
+
+    private func resultField(_ v: Verdict, text: Binding<String>, id: String) -> some View {
+        HStack(spacing: 10) {
+            RoundedRectangle(cornerRadius: 4)
+                .fill(v == .sandt ? Color.sandt : Color.falsk)
+                .frame(width: 18, height: 18)
+            TextField(s.word(v), text: text)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.done)
+                .accessibilityIdentifier(id)
+            if !text.wrappedValue.isEmpty {
+                Button { text.wrappedValue = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }
+                    .buttonStyle(.borderless)
+            }
         }
     }
 

@@ -38,6 +38,7 @@ Sort skærm eller dit eget billede (fx skærmbillede af hjemmeskærmen). Tryk �
 - **Lær min mønt (anbefalet)**: 1) 3 s uden mønt, 2) 3 s hen over hånden med mønt → tærsklen sættes automatisk.
 - **Tilstand**: Normal/Hemmelig, hvornår vibrationen starter (standard 1 s), vibration til/fra + **vibrationskraft**, test-vibrationer, **hemmelig grå prik** (øverst til venstre: vises = mønt, væk = ingen), egen baggrund.
 - Hvert nyt gæt nulstiller målingen og tager en frisk grundmåling (~0,3 s efter trykket).
+- **Resultattekster**: egen tekst ved Sandt/Falsk (fx "Mette lyver!"), hurtige valg, tomt = standard.
 - **Udseende og lyd**: English (standard)/dansk, lyd til/fra + lydstyrke (+ test), 6 skrifter, **app-ikon** (Fingeraftryk, Neon, Klassisk – iOS viser en kort besked, når ikonet skiftes).
 - **Avanceret**: målinger i træk, målemetode, kalibrering, log.
 

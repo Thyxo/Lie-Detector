@@ -8,7 +8,7 @@ final class PanelUITests: XCTestCase {
     override func setUp() {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-fakeSensor", "-language", "en", "-mode", "normal", "-threshold2", "40", "-hasBackground", "NO", "-sound", "YES", "-soundVolume", "1", "-vibEnabled", "YES", "-vibStrength", "1", "-coinDot", "NO"]
+        app.launchArguments = ["-fakeSensor", "-language", "en", "-mode", "normal", "-threshold2", "40", "-hasBackground", "NO", "-sound", "YES", "-soundVolume", "1", "-vibEnabled", "YES", "-vibStrength", "1", "-coinDot", "NO", "-customTrue", "", "-customFalse", ""]
         app.launch()
     }
 
@@ -115,5 +115,19 @@ final class PanelUITests: XCTestCase {
         toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
         expectation(for: NSPredicate(format: "value != %@", before ?? ""), evaluatedWith: toggle)
         waitForExpectations(timeout: 3)
+    }
+
+    func testCustomResultTexts() {
+        openPanel()
+        let field = app.textFields["customFalseField"]
+        scrollTo(field)
+        field.tap()
+        field.typeText("Mette lyver!")
+        XCTAssertEqual(field.value as? String, "Mette lyver!", "Egen tekst blev ikke gemt i feltet")
+        app.swipeDown(velocity: .slow)   // luk tastaturet
+        let preset = app.buttons["TRUTH  /  LIE!"]
+        scrollTo(preset)
+        preset.tap()
+        XCTAssertEqual(app.textFields["customFalseField"].value as? String, "LIE!", "Hurtigt valg virkede ikke")
     }
 }

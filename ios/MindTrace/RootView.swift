@@ -93,13 +93,15 @@ struct BigWord: View {
     @EnvironmentObject var settings: AppSettings
     let text: String
     var size: Double = 76
+    var lines: Int = 1
 
     var body: some View {
         Text(text)
             .font(settings.font.font(size))
             .foregroundStyle(.white)
-            .lineLimit(1)
-            .minimumScaleFactor(0.3)
+            .multilineTextAlignment(.center)
+            .lineLimit(lines)
+            .minimumScaleFactor(0.25)
             .padding(.horizontal, 24)
     }
 }
@@ -150,7 +152,8 @@ struct ResultScreen: View {
     var body: some View {
         ZStack {
             (verdict == .sandt ? Color.sandt : Color.falsk)
-            BigWord(text: settings.word(verdict), size: 80)
+            BigWord(text: settings.resultText(verdict), size: 80, lines: 3)
+                .accessibilityIdentifier("resultText")
                 .scaleEffect(shown ? 1 : 0.6)
                 .animation(.spring(response: 0.3, dampingFraction: 0.5), value: shown)
         }

@@ -52,6 +52,9 @@ final class AppSettings: ObservableObject {
     @Published var font: AppFont { didSet { d.set(font.rawValue, forKey: "font") } }
     @Published var sound: Bool { didSet { d.set(sound, forKey: "sound") } }
     @Published var soundVolume: Double { didSet { d.set(soundVolume, forKey: "soundVolume") } }
+    /// Egne resultattekster (tom = standard "Sandt"/"Falsk" på valgt sprog).
+    @Published var customTrue: String { didSet { d.set(customTrue, forKey: "customTrue") } }
+    @Published var customFalse: String { didSet { d.set(customFalse, forKey: "customFalse") } }
     @Published var hasBackground: Bool { didSet { d.set(hasBackground, forKey: "hasBackground"); backgroundVersion += 1 } }
     @Published var backgroundVersion = 0
 
@@ -62,6 +65,7 @@ final class AppSettings: ObservableObject {
             "sensorMode": SensorMode.auto.rawValue, "mode": AppMode.normal.rawValue,
             "language": AppLanguage.en.rawValue, "font": AppFont.bungee.rawValue,
             "sound": true, "soundVolume": 1.0, "hasBackground": false,
+            "customTrue": "", "customFalse": "",
         ])
         threshold = d.double(forKey: "threshold2")
         consecutive = d.integer(forKey: "consecutive2")
@@ -76,10 +80,18 @@ final class AppSettings: ObservableObject {
         sound = d.bool(forKey: "sound")
         soundVolume = min(1, max(0, d.double(forKey: "soundVolume")))
         hasBackground = d.bool(forKey: "hasBackground")
+        customTrue = d.string(forKey: "customTrue") ?? ""
+        customFalse = d.string(forKey: "customFalse") ?? ""
     }
 
     /// Dansk/engelsk tekst.
     func tr(_ da: String, _ en: String) -> String { language == .en ? en : da }
 
     func word(_ v: Verdict) -> String { v == .sandt ? tr("Sandt", "True") : tr("Falsk", "False") }
+
+    /// Teksten på resultatskærmen: egen tekst hvis udfyldt, ellers standard.
+    func resultText(_ v: Verdict) -> String {
+        let custom = (v == .sandt ? customTrue : customFalse).trimmingCharacters(in: .whitespacesAndNewlines)
+        return custom.isEmpty ? word(v) : custom
+    }
 }
