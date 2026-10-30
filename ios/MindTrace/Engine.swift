@@ -42,12 +42,13 @@ final class Engine: ObservableObject {
     let readout = LiveReadout()
     private var livePeak = 0.0
 
-    // Lær min mønt
+    // Lær min magnet
     @Published private(set) var learnStep: LearnStep = .idle
     @Published private(set) var learnRunning = false
     @Published private(set) var learnNoise: Double?
     @Published private(set) var learnCoin: Double?
     @Published private(set) var learnMessage: String?
+    @Published private(set) var learnOK: Bool?
 
     let settings: AppSettings
     let sensor = MagnetSensor()
@@ -206,19 +207,20 @@ final class Engine: ObservableObject {
     private func logText(_ v: Verdict?, status: Bool?, peak: Double) -> String {
         let sensorText: String
         switch status {
-        case .some(true): sensorText = String(format: settings.tr("mønt · %.0f/%.0f µT", "coin · %.0f/%.0f µT"), peak, settings.threshold)
-        case .some(false): sensorText = String(format: settings.tr("ingen mønt · %.0f/%.0f µT", "no coin · %.0f/%.0f µT"), peak, settings.threshold)
+        case .some(true): sensorText = String(format: settings.tr("magnet · %.0f/%.0f µT", "magnet · %.0f/%.0f µT"), peak, settings.threshold)
+        case .some(false): sensorText = String(format: settings.tr("ingen magnet · %.0f/%.0f µT", "no magnet · %.0f/%.0f µT"), peak, settings.threshold)
         case .none: sensorText = settings.tr("ingen sensordata", "no sensor data")
         }
         if let v { return "\(settings.word(v)) | \(sensorText)" }
         return settings.tr("Hemmelig: ", "Secret: ") + sensorText
     }
 
-    // MARK: Lær min mønt
+    // MARK: Lær min magnet
     func learn(_ step: LearnStep) {
         guard step == .noise || step == .coin, !learnRunning else { return }
         learnStep = step
         learnMessage = nil
+        learnOK = nil
         learnRunning = true
         stopScan()
         // Kort pause, så grundmålingen tages med telefonen i ro, derefter 3 s måling.
@@ -226,7 +228,7 @@ final class Engine: ObservableObject {
             guard let self else { return }
             guard self.detector.beginScan() else {
                 self.learnRunning = false
-                self.learnMessage = self.settings.tr("Ingen sensordata.", "No sensor data.")
+                self.learnMessage = self.settings.tr("Telefonen giver ingen målinger. Luk appen helt, og åbn den igen.", "The phone gives no readings. Close the app completely and open it again.")
                 return
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
@@ -245,16 +247,18 @@ final class Engine: ObservableObject {
         learnStep = .done
         if let t = Detector.learnedThreshold(noise: n, coin: c) {
             settings.threshold = min(300, max(5, t))
-            learnMessage = settings.tr("Tærskel sat til \(Int(settings.threshold)) µT.", "Threshold set to \(Int(settings.threshold)) µT.")
-            addLog(settings.tr("Lært: uden mønt \(Int(n)) µT, med mønt \(Int(c)) µT → \(Int(settings.threshold)) µT",
-                               "Learned: no coin \(Int(n)) µT, coin \(Int(c)) µT → \(Int(settings.threshold)) µT"))
+            learnOK = true
+            learnMessage = settings.tr("Færdig! Appen kender nu din magnet.", "Done! The app now knows your magnet.")
+            addLog(settings.tr("Lært: uden magnet \(Int(n)) µT, med magnet \(Int(c)) µT → \(Int(settings.threshold)) µT",
+                               "Learned: no magnet \(Int(n)) µT, magnet \(Int(c)) µT → \(Int(settings.threshold)) µT"))
         } else {
-            learnMessage = settings.tr("Mønten gav for lille udslag (\(Int(c)) µT mod \(Int(n)) µT). Hold toppen af telefonen tættere på mønten og prøv igen.",
-                                       "The coin gave too small a signal (\(Int(c)) µT vs \(Int(n)) µT). Hold the top of the phone closer and try again.")
+            learnOK = false
+            learnMessage = settings.tr("Magneten blev ikke fanget tydeligt nok. Hold toppen af telefonen tættere på hånden, og prøv trin 2 igen.",
+                                       "The magnet was not picked up clearly enough. Hold the top of the phone closer to the hand and try step 2 again.")
         }
     }
 
-    func resetLearn() { learnStep = .idle; learnNoise = nil; learnCoin = nil; learnMessage = nil }
+    func resetLearn() { learnStep = .idle; learnNoise = nil; learnCoin = nil; learnMessage = nil; learnOK = nil }
 
     // MARK: Nulstil
     func resetToStart() {

@@ -116,7 +116,7 @@ final class Detector {
 
     /// Nyt gæt: glem alt fra sidste scanning (grundmåling, top, live-reference),
     /// så næste grundmåling tages helt frisk.
-    /// Rører IKKE tærsklen fra "Lær min mønt" eller den lærte telefon-magnetisme (bias).
+    /// Rører IKKE tærsklen fra "Lær min magnet" eller den lærte telefon-magnetisme (bias).
     func resetForNewGuess() {
         tracker.biasFrozen = false
         scan = nil
@@ -127,7 +127,7 @@ final class Detector {
 
     func resetLive() { liveRef = current }
 
-    /// Tærskel ud fra "Lær min mønt": udslag uden mønt (støj) og med mønt.
+    /// Tærskel ud fra "Lær min magnet": udslag uden mønt (støj) og med mønt.
     static func learnedThreshold(noise: Double, coin: Double) -> Double? {
         guard coin >= noise * 1.5 + 5 else { return nil }
         return (noise + (coin - noise) * 0.35).rounded()

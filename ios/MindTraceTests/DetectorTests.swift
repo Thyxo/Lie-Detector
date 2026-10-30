@@ -137,10 +137,10 @@ final class NewGuessTests: XCTestCase {
 }
 
 final class LearnedSettingsSurviveResetTests: XCTestCase {
-    /// Nyt gæt må ikke slette det, "Lær min mønt" har sat (tærsklen), eller den lærte telefon-magnetisme (bias).
+    /// Nyt gæt må ikke slette det, "Lær min magnet" har sat (tærsklen), eller den lærte telefon-magnetisme (bias).
     func testResetKeepsLearnedThresholdAndBias() {
         let d = Detector()
-        d.threshold = 87                                 // fx sat af "Lær min mønt"
+        d.threshold = 87                                 // fx sat af "Lær min magnet"
         let e = Vec3(x: 18, y: 2, z: -42), bias = Vec3(x: 100, y: -200, z: 50)
         for _ in 0..<40 { d.push(MagSample(raw: e + bias, cal: e, rot: .identity, gravity: Vec3(x: 0, y: 0, z: -1))) }
         let learnedBias = d.tracker.bias

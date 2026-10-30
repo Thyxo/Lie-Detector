@@ -122,12 +122,24 @@ final class PanelUITests: XCTestCase {
         let field = app.textFields["customFalseField"]
         scrollTo(field)
         field.tap()
-        field.typeText("Mette lyver!")
-        XCTAssertEqual(field.value as? String, "Mette lyver!", "Egen tekst blev ikke gemt i feltet")
+        field.typeText("Nice try!")
+        XCTAssertEqual(field.value as? String, "Nice try!", "Egen tekst blev ikke gemt i feltet")
         app.swipeDown(velocity: .slow)   // luk tastaturet
-        let preset = app.buttons["TRUTH  /  LIE!"]
+        let preset = app.buttons["preset0"]
         scrollTo(preset)
         preset.tap()
-        XCTAssertEqual(app.textFields["customFalseField"].value as? String, "LIE!", "Hurtigt valg virkede ikke")
+        XCTAssertEqual(app.textFields["customFalseField"].value as? String, "LIE!", "Forslag virkede ikke")
+        let reset = app.buttons["presetDefault"]
+        reset.tap()
+        XCTAssertNotEqual(app.textFields["customFalseField"].value as? String, "LIE!", "Standard-forslag ryddede ikke teksten")
+    }
+
+    func testLearnMyMagnetOpens() {
+        openPanel()
+        let link = app.buttons["learnLink"]
+        scrollTo(link)
+        link.tap()
+        XCTAssertTrue(app.navigationBars["Learn my magnet"].waitForExistence(timeout: 3), "Lær min magnet åbnede ikke")
+        XCTAssertTrue(app.buttons["Start"].firstMatch.exists, "Start-knap mangler")
     }
 }

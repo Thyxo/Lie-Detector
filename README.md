@@ -33,14 +33,18 @@ Sort skærm eller dit eget billede (fx skærmbillede af hjemmeskærmen). Tryk �
 ## 4. Hemmelig menu
 **Åbn:** 5 hurtige tryk i øverste højre hjørne. **Færdig** lukker (første sekund ignoreres).
 
-- **Sensor**: live-bjælke med udslag, top og tærskel-streg + "MAGNET"/"ingen magnet".
-- **Følsomhed**: tærskel i µT (standard **40 µT**, knap "Standard"). Under tærsklen = ingen mønt.
-- **Lær min mønt (anbefalet)**: 1) 3 s uden mønt, 2) 3 s hen over hånden med mønt → tærsklen sættes automatisk.
-- **Tilstand**: Normal/Hemmelig, hvornår vibrationen starter (standard 1 s), vibration til/fra + **vibrationskraft**, test-vibrationer, **hemmelig grå prik** (øverst til venstre: vises = mønt, væk = ingen), egen baggrund.
-- Hvert nyt gæt nulstiller målingen og tager en frisk grundmåling (~0,3 s efter trykket).
-- **Resultattekster**: egen tekst ved Sandt/Falsk (fx "Mette lyver!"), hurtige valg, tomt = standard.
-- **Udseende og lyd**: English (standard)/dansk, lyd til/fra + lydstyrke (+ test), 6 skrifter, **app-ikon** (Fingeraftryk, Neon, Klassisk – iOS viser en kort besked, når ikonet skiftes).
-- **Avanceret**: målinger i træk, målemetode, kalibrering, log.
+
+Menuen er sorteret efter, hvad man bruger mest:
+
+1. **Lyd** – til/fra, lydstyrke, afspil Sandt/Falsk.
+2. **Vibration** – til/fra, styrke, hvornår den starter, test 2/1 bump.
+3. **Magnet** – **Lær min magnet** (anbefalet, virker med alle magnetiske ting), live-bjælke, følsomhed (standard **40 µT**), hemmelig grå prik.
+4. **Tekst på skærmen** – egne Sandt/Falsk-tekster med forhåndsvisning og forslag.
+5. **Visning** – Normal/Hemmelig (+ baggrundsbillede i Hemmelig).
+6. **Udseende** – sprog, skrifttype, app-ikon.
+7. **Avanceret** – kun til fejlsøgning.
+
+Hvert nyt gæt nulstiller målingen og tager en frisk grundmåling (~0,3 s efter trykket).
 
 ## 5. Sådan virker detektionen
 - Rå magnetometer (100 Hz) + telefonens orientering. Feltet regnes om til rummets akser, så **drejning af telefonen ikke giver udslag** – kun en magnet tæt på gør.
@@ -54,7 +58,7 @@ ios/project.yml             XcodeGen (app + logik-tests)
 ios/MindTrace/              App (SwiftUI)
   Detector.swift, Vec3.swift  Detektion (ren logik, testet)
   MagnetSensor.swift          Core Motion
-  Engine.swift                Forløb, afgørelse, lær-min-mønt, vibration
+  Engine.swift                Forløb, afgørelse, lær-min-magnet, vibration
   RootView.swift              Skærme
   SecretPanel.swift           Hemmelig menu
   Resources/Fonts, Sounds     Skrifter (OFL/Apache) og lyde

@@ -2,8 +2,8 @@ import SwiftUI
 import PhotosUI
 
 /// Hemmelig menu. Åbnes med 5 hurtige tryk øverst til højre.
-/// Live-målingen ligger i `LiveReadout`, så den kun tegner bjælken om – resten af menuen
-/// tegnes kun om, når du selv ændrer noget (ellers bliver skydere og knapper ustabile).
+/// Rækkefølge: det man bruger oftest øverst (lyd, vibration, magnet), finpudsning nederst.
+/// Live-målingen ligger i `LiveReadout`, så kun bjælken tegnes om 10 gange i sekundet.
 struct SecretPanel: View {
     @EnvironmentObject var engine: Engine
     @EnvironmentObject var s: AppSettings
@@ -17,19 +17,25 @@ struct SecretPanel: View {
     var body: some View {
         NavigationStack {
             Form {
-                modeSection
-                sensitivitySection
+                soundSection
+                vibrationSection
+                magnetSection
                 textsSection
+                modeSection
                 looksSection
                 advancedSection
                 Section {
-                    Button(s.tr("Nulstil til start", "Back to start")) { engine.resetToStart() }
+                    Button { engine.resetToStart() } label: {
+                        Label(s.tr("Tilbage til startskærmen", "Back to start screen"), systemImage: "arrow.uturn.backward")
+                    }
                 } footer: {
-                    Text(s.tr("Åbn menuen: 5 hurtige tryk øverst til højre.", "Open menu: 5 quick taps top right."))
+                    Text(s.tr("Åbn menuen: 5 hurtige tryk øverst til højre.", "Open this menu: 5 quick taps top right."))
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 8)
                 }
             }
             .scrollDismissesKeyboard(.interactively)
-            .navigationTitle("MindTrace")
+            .navigationTitle(s.tr("Indstillinger", "Settings"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -37,10 +43,13 @@ struct SecretPanel: View {
                         // Første sekund ignoreres, så et ekstra hemmeligt tryk ikke lukker menuen.
                         if Date().timeIntervalSince(openedAt) > 1 { engine.panelOpen = false }
                     }
+                    .fontWeight(.semibold)
                     .accessibilityIdentifier("doneButton")
                 }
             }
         }
+        .tint(Color.sandt)
+        .preferredColorScheme(.dark)
         .onAppear { openedAt = Date(); icon = AppIconChoice.current }
         .onChange(of: photo) { _, item in
             guard let item else { return }
@@ -60,83 +69,89 @@ struct SecretPanel: View {
         }
     }
 
-    // MARK: Tilstand, vibration og baggrund
-    private var modeSection: some View {
+    // MARK: 1. Lyd
+    private var soundSection: some View {
         Section {
-            Picker(s.tr("Tilstand", "Mode"), selection: $s.mode) {
-                Text("Normal").tag(AppMode.normal)
-                Text(s.tr("Hemmelig", "Secret")).tag(AppMode.hidden)
+            Toggle(isOn: $s.sound) {
+                RowLabel(s.tr("Lyd", "Sound"), icon: "speaker.wave.2.fill", color: .orange)
             }
-            .pickerStyle(.segmented)
-            .accessibilityIdentifier("modePicker")
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(String(format: s.tr("Vibration starter efter %.1f s", "Vibration starts after %.1f s"), s.vibDelay))
-                Slider(value: $s.vibDelay, in: 0...5, step: 0.5)
-                    .accessibilityIdentifier("vibDelaySlider")
-            }
-
-            Toggle(s.tr("Vibration", "Vibration"), isOn: $s.vibEnabled)
-                .accessibilityIdentifier("vibToggle")
-            if s.vibEnabled {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(s.tr("Vibrationskraft", "Vibration strength"))
-                        Spacer()
-                        Text("\(Int((s.vibStrength * 100).rounded())) %")
-                            .monospacedDigit()
-                            .foregroundStyle(.secondary)
-                            .accessibilityIdentifier("vibStrengthValue")
+            .accessibilityIdentifier("soundToggle")
+            if s.sound {
+                ValueSlider(title: s.tr("Lydstyrke", "Volume"),
+                            value: $s.soundVolume, range: 0...1, step: 0.05,
+                            text: "\(Int((s.soundVolume * 100).rounded())) %",
+                            sliderID: "volumeSlider", valueID: "volumeValue",
+                            minIcon: "speaker.fill", maxIcon: "speaker.wave.3.fill")
+                HStack(spacing: 10) {
+                    PillButton(title: s.word(.sandt), icon: "play.fill", color: .sandt) {
+                        engine.sounds.play(.sandt, volume: s.soundVolume)
                     }
-                    Slider(value: $s.vibStrength, in: 0.1...1, step: 0.05)
-                        .accessibilityIdentifier("vibStrengthSlider")
-                }
-                HStack {
-                    Button(s.tr("Test: mønt (2)", "Test: coin (2)")) { engine.haptics.pulses(2, strength: s.vibStrength) }
-                    Spacer()
-                    Button(s.tr("Test: ingen (1)", "Test: none (1)")) { engine.haptics.pulses(1, strength: s.vibStrength) }
-                }
-                .buttonStyle(.borderless)
-            }
-            Toggle(s.tr("Hemmelig grå prik (øverst til venstre)", "Secret grey dot (top left)"), isOn: $s.coinDot)
-                .accessibilityIdentifier("dotToggle")
-
-            PhotosPicker(selection: $photo, matching: .images) {
-                Label(s.hasBackground ? s.tr("Skift egen baggrund", "Change own background")
-                                      : s.tr("Vælg egen baggrund (fx din hjemmeskærm)", "Choose own background (e.g. your home screen)"),
-                      systemImage: "photo")
-            }
-            .accessibilityIdentifier("backgroundPicker")
-            if s.hasBackground {
-                Button(s.tr("Fjern baggrund (brug sort)", "Remove background (use black)"), role: .destructive) {
-                    BackgroundStore.clear()
-                    s.hasBackground = false
+                    PillButton(title: s.word(.falsk), icon: "play.fill", color: .falsk) {
+                        engine.sounds.play(.falsk, volume: s.soundVolume)
+                    }
                 }
             }
-            if photoError {
-                Text(s.tr("Billedet kunne ikke indlæses.", "Could not load the image.")).font(.caption).foregroundStyle(.red)
-            }
-        } header: { Text(s.tr("Tilstand", "Mode")) } footer: {
-            Text((s.mode == .hidden
-                 ? s.tr("Hemmelig: din baggrund (eller sort). Tryk for at scanne. Telefonen vibrerer: 2 bump = mønt, 1 bump = ingen mønt – hvert sekund, indtil du trykker igen.",
-                        "Secret: your background (or black). Tap to scan. The phone buzzes: 2 = coin, 1 = no coin – every second until you tap again.")
-                 : s.tr("Normal: tryk på startskærmen → Tænker. Telefonen vibrerer: 2 bump = mønt, 1 bump = ingen mønt (1 lang = ingen sensordata). Tryk volumen op = Sandt, ned = Falsk. Egen baggrund bruges i Hemmelig.",
-                        "Normal: tap the start screen → Thinking. The phone buzzes: 2 = coin, 1 = no coin (1 long = no sensor data). Press volume up = True, down = False. Own background is used in Secret."))
-                 + "\n\n" + s.tr("Grå prik: vises øverst til venstre under scanning, når der er mønt – væk = ingen mønt. Hvert nyt gæt starter med en frisk måling.",
-                                  "Grey dot: shown top left while scanning when there is a coin – gone = no coin. Every new guess starts with a fresh reading."))
+        } header: {
+            Text(s.tr("Lyd", "Sound"))
         }
     }
 
-    // MARK: Følsomhed + live-måling
-    private var sensitivitySection: some View {
+    // MARK: 2. Vibration
+    private var vibrationSection: some View {
         Section {
-            SensorBadge(readout: engine.readout, hardware: engine.sensor.hardwareAvailable)
-            LiveMeter(readout: engine.readout, threshold: s.threshold)
-            Button(s.tr("Nulstil måling", "Reset reading")) { engine.resetLive() }
+            Toggle(isOn: $s.vibEnabled) {
+                RowLabel(s.tr("Vibration", "Vibration"), icon: "iphone.radiowaves.left.and.right", color: .purple)
+            }
+            .accessibilityIdentifier("vibToggle")
+            if s.vibEnabled {
+                ValueSlider(title: s.tr("Styrke", "Strength"),
+                            value: $s.vibStrength, range: 0.1...1, step: 0.05,
+                            text: "\(Int((s.vibStrength * 100).rounded())) %",
+                            sliderID: "vibStrengthSlider", valueID: "vibStrengthValue")
+                ValueSlider(title: s.tr("Starter efter", "Starts after"),
+                            value: $s.vibDelay, range: 0...5, step: 0.5,
+                            text: String(format: "%.1f s", s.vibDelay),
+                            sliderID: "vibDelaySlider", valueID: "vibDelayValue")
+                HStack(spacing: 10) {
+                    PillButton(title: s.tr("2 bump", "2 bumps"), icon: "hand.tap.fill", color: Color(white: 0.3)) {
+                        engine.haptics.pulses(2, strength: s.vibStrength)
+                    }
+                    PillButton(title: s.tr("1 bump", "1 bump"), icon: "hand.tap.fill", color: Color(white: 0.3)) {
+                        engine.haptics.pulses(1, strength: s.vibStrength)
+                    }
+                }
+            }
+        } header: {
+            Text(s.tr("Vibration (kun du mærker den)", "Vibration (only you feel it)"))
+        } footer: {
+            Text(s.tr("2 bump = magnet i hånden · 1 bump = ingen magnet. Gentages hvert sekund.",
+                      "2 bumps = magnet in the hand · 1 bump = no magnet. Repeats every second."))
+        }
+    }
+
+    // MARK: 3. Magnet
+    private var magnetSection: some View {
+        Section {
+            NavigationLink {
+                LearnView().environmentObject(engine).environmentObject(s)
+            } label: {
+                HStack(spacing: 12) {
+                    RowIcon(symbol: "wand.and.stars", color: .green)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(s.tr("Lær min magnet", "Learn my magnet")).fontWeight(.semibold)
+                        Text(s.tr("Anbefalet · tager 10 sekunder", "Recommended · takes 10 seconds"))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+            .accessibilityIdentifier("learnLink")
+
+            LiveMeter(readout: engine.readout, threshold: s.threshold, hardware: engine.sensor.hardwareAvailable)
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text(s.tr("Tærskel", "Threshold"))
+                    Text(s.tr("Følsomhed", "Sensitivity"))
                     Spacer()
                     Text("\(Int(s.threshold)) µT")
                         .monospacedDigit()
@@ -146,119 +161,167 @@ struct SecretPanel: View {
                 Slider(value: $s.threshold, in: 5...300, step: 1)
                     .accessibilityIdentifier("thresholdSlider")
                 HStack {
-                    Text(s.tr("Mere følsom", "More sensitive")).font(.caption).foregroundStyle(.secondary)
+                    Text(s.tr("Fanger mere", "Catches more")).font(.caption2).foregroundStyle(.secondary)
                     Spacer()
-                    Text(s.tr("Mindre følsom", "Less sensitive")).font(.caption).foregroundStyle(.secondary)
+                    if s.threshold != AppSettings.defaultThreshold {
+                        Button(s.tr("Standard", "Default")) { s.threshold = AppSettings.defaultThreshold }
+                            .font(.caption.weight(.semibold))
+                            .buttonStyle(.borderless)
+                        Spacer()
+                    }
+                    Text(s.tr("Fanger mindre", "Catches less")).font(.caption2).foregroundStyle(.secondary)
                 }
             }
-            Button(s.tr("Standard (\(Int(AppSettings.defaultThreshold)) µT)", "Default (\(Int(AppSettings.defaultThreshold)) µT)")) {
-                s.threshold = AppSettings.defaultThreshold
+            .padding(.vertical, 4)
+
+            Toggle(isOn: $s.coinDot) {
+                RowLabel(s.tr("Hemmelig grå prik", "Secret grey dot"), icon: "circle.fill", color: .gray,
+                         detail: s.tr("Vises øverst til venstre, når der er en magnet", "Shows top left when a magnet is found"))
             }
-            NavigationLink(s.tr("Lær min mønt (anbefalet)", "Learn my coin (recommended)")) {
-                LearnView().environmentObject(engine).environmentObject(s)
-            }
-        } header: { Text(s.tr("Følsomhed", "Sensitivity")) } footer: {
-            Text(s.tr("Før toppen af telefonen hen over mønten og se, om bjælken går over den hvide streg (tærsklen). Vibrerer den \"mønt\" for tit: skru op. Opdager den ikke mønten: skru ned – eller brug \"Lær min mønt\".",
-                      "Move the top of the phone over the coin and check that the bar passes the white line (threshold). Too many false coins: raise it. Misses the coin: lower it – or use \"Learn my coin\"."))
+            .accessibilityIdentifier("dotToggle")
+        } header: {
+            Text(s.tr("Magnet", "Magnet"))
+        } footer: {
+            Text(s.tr("Test: før toppen af telefonen hen over magneten. Bjælken skal forbi den hvide streg. Siger den \"magnet\" for tit, så træk følsomheden mod højre.",
+                      "Test: move the top of the phone over the magnet. The bar should pass the white line. If it says \"magnet\" too often, drag sensitivity to the right."))
         }
     }
 
-    // MARK: Egne resultattekster
+    // MARK: 4. Resultattekster
     private var textsSection: some View {
         Section {
+            HStack(spacing: 10) {
+                ResultPreview(text: s.resultText(.sandt), color: .sandt, font: s.font)
+                ResultPreview(text: s.resultText(.falsk), color: .falsk, font: s.font)
+            }
+            .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+
             resultField(.sandt, text: $s.customTrue, id: "customTrueField")
             resultField(.falsk, text: $s.customFalse, id: "customFalseField")
-            VStack(alignment: .leading, spacing: 6) {
-                Text(s.tr("Hurtige valg", "Quick picks")).font(.caption).foregroundStyle(.secondary)
-                ForEach(0..<presets.count, id: \.self) { i in
-                    let p = presets[i]
-                    Button("\(p.0)  /  \(p.1)") { s.customTrue = p.0; s.customFalse = p.1 }
-                        .buttonStyle(.borderless)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(s.tr("Forslag", "Suggestions")).font(.caption).foregroundStyle(.secondary)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        PresetChip(t: s.word(.sandt), f: s.word(.falsk),
+                                   selected: s.customTrue.isEmpty && s.customFalse.isEmpty) {
+                            s.customTrue = ""; s.customFalse = ""
+                        }
+                        .accessibilityIdentifier("presetDefault")
+                        ForEach(Array(presets.enumerated()), id: \.offset) { i, p in
+                            PresetChip(t: p.0, f: p.1, selected: s.customTrue == p.0 && s.customFalse == p.1) {
+                                s.customTrue = p.0; s.customFalse = p.1
+                            }
+                            .accessibilityIdentifier("preset\(i)")
+                        }
+                    }
+                    .padding(.vertical, 2)
                 }
             }
-            if !s.customTrue.isEmpty || !s.customFalse.isEmpty {
-                Button(s.tr("Brug standard (\(s.word(.sandt)) / \(s.word(.falsk)))", "Use default (\(s.word(.sandt)) / \(s.word(.falsk)))")) {
-                    s.customTrue = ""; s.customFalse = ""
-                }
-            }
-        } header: { Text(s.tr("Resultattekster", "Result texts")) } footer: {
-            Text(s.tr("Tomt felt = standardtekst. Skriv fx tilskuerens navn: \"Mette lyver!\". Lange tekster deles på op til 3 linjer.",
-                      "Empty field = default text. Try the spectator's name: \"Mette is lying!\". Long texts wrap to up to 3 lines."))
+            .padding(.vertical, 4)
+        } header: {
+            Text(s.tr("Tekst på skærmen", "Text on screen"))
+        } footer: {
+            Text(s.tr("Skriv din egen, fx \"Afsløret!\". Tomt felt = standard.",
+                      "Write your own, e.g. \"Busted!\". Empty field = default."))
         }
     }
 
     private var presets: [(String, String)] {
         s.language == .en
-            ? [("TRUTH", "LIE!"), ("Honest", "Liar!"), ("✓ TRUE", "✗ FALSE")]
-            : [("SANDHED", "LØGN!"), ("Ærlig", "Lyver!"), ("✓ SANDT", "✗ FALSK")]
+            ? [("TRUTH", "LIE!"), ("Honest", "Liar!"), ("✓", "✗"), ("Legit", "Busted!")]
+            : [("SANDHED", "LØGN!"), ("Ærlig", "Lyver!"), ("✓", "✗"), ("Ægte", "Afsløret!")]
     }
 
     private func resultField(_ v: Verdict, text: Binding<String>, id: String) -> some View {
-        HStack(spacing: 10) {
-            RoundedRectangle(cornerRadius: 4)
+        HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(v == .sandt ? Color.sandt : Color.falsk)
-                .frame(width: 18, height: 18)
-            TextField(s.word(v), text: text)
-                .textInputAutocapitalization(.never)
+                .frame(width: 22, height: 22)
+            TextField(s.tr("Tekst ved \(s.word(v))", "Text for \(s.word(v))"), text: text)
                 .autocorrectionDisabled()
                 .submitLabel(.done)
                 .accessibilityIdentifier(id)
             if !text.wrappedValue.isEmpty {
-                Button { text.wrappedValue = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }
-                    .buttonStyle(.borderless)
+                Button { text.wrappedValue = "" } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
             }
         }
     }
 
-    // MARK: Udseende, sprog, lyd, ikon
-    private var looksSection: some View {
-        Section(s.tr("Udseende og lyd", "Look and sound")) {
-            Picker(s.tr("Sprog", "Language"), selection: $s.language) {
-                Text("English").tag(AppLanguage.en)
-                Text("Dansk").tag(AppLanguage.da)
+    // MARK: 5. Visning (Normal / Hemmelig)
+    private var modeSection: some View {
+        Section {
+            Picker(s.tr("Visning", "Display"), selection: $s.mode) {
+                Text("Normal").tag(AppMode.normal)
+                Text(s.tr("Hemmelig", "Secret")).tag(AppMode.hidden)
             }
             .pickerStyle(.segmented)
-            .accessibilityIdentifier("languagePicker")
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets())
+            .accessibilityIdentifier("modePicker")
 
-            Toggle(s.tr("Lyd ved Sandt/Falsk", "Sound on True/False"), isOn: $s.sound)
-                .accessibilityIdentifier("soundToggle")
-            if s.sound {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(s.tr("Lydstyrke", "Volume"))
-                        Spacer()
-                        Text("\(Int((s.soundVolume * 100).rounded())) %")
-                            .monospacedDigit()
-                            .foregroundStyle(.secondary)
-                            .accessibilityIdentifier("volumeValue")
-                    }
-                    HStack(spacing: 10) {
-                        Image(systemName: "speaker.fill").foregroundStyle(.secondary)
-                        Slider(value: $s.soundVolume, in: 0...1, step: 0.05)
-                            .accessibilityIdentifier("volumeSlider")
-                        Image(systemName: "speaker.wave.3.fill").foregroundStyle(.secondary)
+            if s.mode == .hidden {
+                PhotosPicker(selection: $photo, matching: .images) {
+                    RowLabel(s.hasBackground ? s.tr("Skift baggrundsbillede", "Change background image")
+                                             : s.tr("Vælg baggrundsbillede", "Choose background image"),
+                             icon: "photo.fill", color: .blue,
+                             detail: s.tr("Fx et skærmbillede af din hjemmeskærm", "E.g. a screenshot of your home screen"))
+                }
+                .accessibilityIdentifier("backgroundPicker")
+                if s.hasBackground {
+                    Button(role: .destructive) {
+                        BackgroundStore.clear()
+                        s.hasBackground = false
+                    } label: {
+                        Label(s.tr("Fjern billede (brug sort)", "Remove image (use black)"), systemImage: "trash")
                     }
                 }
-                HStack {
-                    Button(s.tr("Hør Sandt", "Play True")) { engine.sounds.play(.sandt, volume: s.soundVolume) }
-                    Spacer()
-                    Button(s.tr("Hør Falsk", "Play False")) { engine.sounds.play(.falsk, volume: s.soundVolume) }
+                if photoError {
+                    Text(s.tr("Billedet kunne ikke indlæses.", "Could not load the image.")).font(.caption).foregroundStyle(.red)
                 }
-                .buttonStyle(.borderless)
+            }
+        } header: {
+            Text(s.tr("Visning", "Display"))
+        } footer: {
+            Text(s.mode == .hidden
+                 ? s.tr("Hemmelig: skærmen ser sort ud (eller viser dit billede). Tryk for at starte og stoppe – du får kun vibrationen.",
+                        "Secret: the screen looks black (or shows your image). Tap to start and stop – you only get the vibration.")
+                 : s.tr("Normal: tryk på startskærmen. Volumen op = Sandt, volumen ned = Falsk.",
+                        "Normal: tap the start screen. Volume up = True, volume down = False."))
+        }
+    }
+
+    // MARK: 6. Udseende
+    private var looksSection: some View {
+        Section {
+            HStack {
+                RowLabel(s.tr("Sprog", "Language"), icon: "globe", color: .blue)
+                Spacer(minLength: 16)
+                Picker(s.tr("Sprog", "Language"), selection: $s.language) {
+                    Text("English").tag(AppLanguage.en)
+                    Text("Dansk").tag(AppLanguage.da)
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 170)
+                .accessibilityIdentifier("languagePicker")
             }
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text(s.tr("Skrift", "Font"))
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+            VStack(alignment: .leading, spacing: 10) {
+                RowLabel(s.tr("Skrifttype", "Font"), icon: "textformat", color: .pink)
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8), GridItem(.flexible())], spacing: 8) {
                     ForEach(AppFont.allCases) { f in
                         Button { s.font = f } label: {
                             VStack(spacing: 4) {
-                                Text(s.word(.sandt)).font(f.font(22)).foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.5)
-                                Text(f.displayName).font(.caption2).foregroundStyle(.secondary)
+                                Text("Aa").font(f.font(22)).foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.5)
+                                Text(f.displayName).font(.caption2).foregroundStyle(.secondary).lineLimit(1).minimumScaleFactor(0.7)
                             }
-                            .frame(maxWidth: .infinity, minHeight: 58)
-                            .background(RoundedRectangle(cornerRadius: 10).fill(Color(white: 0.2)))
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(s.font == f ? Color.accentColor : .clear, lineWidth: 2))
+                            .frame(maxWidth: .infinity, minHeight: 60)
+                            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color(white: 0.18)))
+                            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(s.font == f ? Color.sandt : .clear, lineWidth: 2))
                         }
                         .buttonStyle(.borderless)
                     }
@@ -266,8 +329,8 @@ struct SecretPanel: View {
             }
             .padding(.vertical, 4)
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text(s.tr("App-ikon", "App icon"))
+            VStack(alignment: .leading, spacing: 10) {
+                RowLabel(s.tr("App-ikon", "App icon"), icon: "app.fill", color: .indigo)
                 HStack(spacing: 12) {
                     ForEach(AppIconChoice.allCases) { c in
                         Button {
@@ -275,14 +338,14 @@ struct SecretPanel: View {
                             icon = c
                             c.apply { ok in if !ok { icon = previous; iconError = true } }
                         } label: {
-                            VStack(spacing: 4) {
+                            VStack(spacing: 6) {
                                 Image(c.preview)
                                     .resizable()
-                                    .frame(width: 64, height: 64)
+                                    .frame(width: 60, height: 60)
                                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                     .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .stroke(icon == c ? Color.accentColor : .clear, lineWidth: 3))
-                                Text(c.label(s)).font(.caption2).foregroundStyle(.secondary)
+                                        .stroke(icon == c ? Color.sandt : .clear, lineWidth: 3))
+                                Text(c.label(s)).font(.caption2).foregroundStyle(icon == c ? .primary : .secondary)
                             }
                             .frame(maxWidth: .infinity)
                         }
@@ -294,22 +357,25 @@ struct SecretPanel: View {
                 }
             }
             .padding(.vertical, 4)
+        } header: {
+            Text(s.tr("Udseende", "Appearance"))
         }
     }
 
-    // MARK: Avanceret
+    // MARK: 7. Avanceret
     private var advancedSection: some View {
         Section {
-            DisclosureGroup(s.tr("Avanceret", "Advanced"), isExpanded: $showAdvanced) {
-                Stepper(s.tr("Målinger i træk: \(s.consecutive)", "Samples in a row: \(s.consecutive)"), value: $s.consecutive, in: 1...20)
+            DisclosureGroup(isExpanded: $showAdvanced) {
+                Stepper(s.tr("Målinger i træk: \(s.consecutive)", "Readings in a row: \(s.consecutive)"), value: $s.consecutive, in: 1...20)
                 Picker(s.tr("Måling", "Measuring"), selection: $s.sensorMode) {
                     Text(s.tr("Auto (tåler drejning)", "Auto (ignores turning)")).tag(SensorMode.auto)
                     Text(s.tr("Rå (hold roligt)", "Raw (hold still)")).tag(SensorMode.raw)
                 }
                 HStack { Text(s.tr("Kalibrering", "Calibration")); Spacer(); Text(accuracyText).foregroundStyle(.secondary) }
-                HStack { Text(s.tr("Målinger/s", "Samples/s")); Spacer(); Text("\(engine.sensor.rate)").foregroundStyle(.secondary) }
+                HStack { Text(s.tr("Målinger/s", "Readings/s")); Spacer(); Text("\(engine.sensor.rate)").foregroundStyle(.secondary) }
+                Button(s.tr("Nulstil måling", "Reset reading")) { engine.resetLive() }
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Log").font(.subheadline.bold())
+                    Text(s.tr("Seneste gæt", "Recent guesses")).font(.subheadline.bold())
                     if engine.log.isEmpty { Text("—").foregroundStyle(.secondary) }
                     ForEach(engine.log) { e in
                         VStack(alignment: .leading, spacing: 2) {
@@ -318,7 +384,11 @@ struct SecretPanel: View {
                         }
                     }
                 }
+            } label: {
+                RowLabel(s.tr("Avanceret", "Advanced"), icon: "gearshape.fill", color: .gray)
             }
+        } footer: {
+            Text(s.tr("Kun til fejlsøgning – behøver normalt ikke ændres.", "For troubleshooting only – normally no need to change."))
         }
     }
 
@@ -332,60 +402,180 @@ struct SecretPanel: View {
     }
 }
 
-/// Sensor-status (opdateres alene).
-struct SensorBadge: View {
-    @EnvironmentObject var s: AppSettings
-    @ObservedObject var readout: LiveReadout
-    let hardware: Bool
+// MARK: - Små byggeklodser
 
+/// Farvet ikon i en afrundet firkant, som i iPhones Indstillinger.
+struct RowIcon: View {
+    let symbol: String
+    let color: Color
     var body: some View {
-        let b: (String, Color) = !hardware ? (s.tr("INGEN SENSOR", "NO SENSOR"), .red)
-            : !readout.live ? (s.tr("VENTER PÅ SENSOR", "WAITING FOR SENSOR"), .orange)
-            : (s.tr("SENSOR KLAR", "SENSOR READY"), .green)
-        Text(b.0).font(.headline).foregroundStyle(b.1)
+        Image(systemName: symbol)
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: 29, height: 29)
+            .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(color))
     }
 }
 
-/// Bjælke: udslag nu, top-markør og tærskel-streg (opdateres alene, højst 10 gange i sekundet).
+struct RowLabel: View {
+    let title: String
+    let icon: String
+    let color: Color
+    var detail: String? = nil
+    init(_ title: String, icon: String, color: Color, detail: String? = nil) {
+        self.title = title; self.icon = icon; self.color = color; self.detail = detail
+    }
+    var body: some View {
+        HStack(spacing: 12) {
+            RowIcon(symbol: icon, color: color)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).foregroundStyle(.primary)
+                if let detail { Text(detail).font(.caption).foregroundStyle(.secondary) }
+            }
+        }
+    }
+}
+
+/// Skyder med titel og værdi til højre.
+struct ValueSlider: View {
+    let title: String
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    let step: Double
+    let text: String
+    let sliderID: String
+    let valueID: String
+    var minIcon: String? = nil
+    var maxIcon: String? = nil
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(title)
+                Spacer()
+                Text(text).monospacedDigit().foregroundStyle(.secondary).accessibilityIdentifier(valueID)
+            }
+            HStack(spacing: 10) {
+                if let minIcon { Image(systemName: minIcon).font(.caption).foregroundStyle(.secondary) }
+                Slider(value: $value, in: range, step: step).accessibilityIdentifier(sliderID)
+                if let maxIcon { Image(systemName: maxIcon).font(.caption).foregroundStyle(.secondary) }
+            }
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+/// Lille afrundet knap (afspil lyd, test vibration).
+struct PillButton: View {
+    let title: String
+    let icon: String
+    let color: Color
+    let action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: icon)
+                .font(.subheadline.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity, minHeight: 38)
+                .background(Capsule().fill(color))
+        }
+        .buttonStyle(.borderless)
+    }
+}
+
+/// Mini-udgave af resultatskærmen.
+struct ResultPreview: View {
+    let text: String
+    let color: Color
+    let font: AppFont
+    var body: some View {
+        Text(text)
+            .font(font.font(20))
+            .foregroundStyle(.white)
+            .multilineTextAlignment(.center)
+            .lineLimit(2)
+            .minimumScaleFactor(0.4)
+            .padding(8)
+            .frame(maxWidth: .infinity, minHeight: 70)
+            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(color))
+    }
+}
+
+/// Forslag til tekster: to små farvede felter.
+struct PresetChip: View {
+    let t: String
+    let f: String
+    let selected: Bool
+    let action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                part(t, .sandt)
+                part(f, .falsk)
+            }
+            .padding(4)
+            .background(Capsule().fill(Color(white: 0.16)))
+            .overlay(Capsule().stroke(selected ? Color.white : .clear, lineWidth: 2))
+        }
+        .buttonStyle(.plain)
+    }
+    private func part(_ text: String, _ c: Color) -> some View {
+        Text(text)
+            .font(.caption.weight(.bold))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Capsule().fill(c))
+    }
+}
+
+/// Status + bjælke: udslag nu, top-markør og hvid streg = følsomhed (opdateres alene, højst 10 gange i sekundet).
 struct LiveMeter: View {
     @EnvironmentObject var s: AppSettings
     @ObservedObject var readout: LiveReadout
     let threshold: Double
+    let hardware: Bool
 
     var body: some View {
         let value = readout.value, peak = readout.peak, live = readout.live
         let scale = max(threshold * 2, 10)
         let over = live && value >= threshold
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(live ? String(format: "%.0f µT", value) : "—").font(.title2.monospacedDigit().bold())
+        let status: (String, Color) = !hardware ? (s.tr("Ingen sensor", "No sensor"), .red)
+            : !live ? (s.tr("Venter på sensor …", "Waiting for sensor …"), .orange)
+            : over ? (s.tr("Magnet fundet", "Magnet found"), .falsk)
+            : (s.tr("Ingen magnet", "No magnet"), .green)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Circle().fill(status.1).frame(width: 10, height: 10)
+                Text(status.0).font(.headline)
                 Spacer()
-                Text(over ? s.tr("MØNT", "COIN") : s.tr("ingen mønt", "no coin"))
-                    .font(.headline)
-                    .foregroundStyle(over ? Color.red : Color.secondary)
+                Text(live ? String(format: "%.0f µT", value) : "—")
+                    .font(.subheadline.monospacedDigit())
+                    .foregroundStyle(.secondary)
             }
             GeometryReader { g in
                 let w = g.size.width
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color(white: 0.22))
-                    Capsule().fill(over ? Color.red : Color.sandt)
+                    Capsule().fill(over ? Color.falsk : Color.sandt)
                         .frame(width: w * min(1, value / scale))
-                    Rectangle().fill(Color.white.opacity(0.5)).frame(width: 2)
+                    Rectangle().fill(Color.white.opacity(0.45)).frame(width: 2)
                         .offset(x: w * min(1, peak / scale) - 1)
-                    Rectangle().fill(Color.white).frame(width: 3, height: 22)
+                    RoundedRectangle(cornerRadius: 1.5).fill(Color.white).frame(width: 3, height: 22)
                         .offset(x: w * min(1, threshold / scale) - 1.5)
                 }
             }
-            .frame(height: 14)
+            .frame(height: 12)
             .allowsHitTesting(false)
-            Text(s.tr("Top: \(Int(peak)) µT · tærskel: \(Int(threshold)) µT", "Peak: \(Int(peak)) µT · threshold: \(Int(threshold)) µT"))
-                .font(.caption).foregroundStyle(.secondary)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
     }
 }
 
-/// "Lær min mønt": måler udslag uden og med mønt og sætter tærsklen.
+/// "Lær min magnet": måler uden og med magnet og indstiller følsomheden selv.
 struct LearnView: View {
     @EnvironmentObject var engine: Engine
     @EnvironmentObject var s: AppSettings
@@ -393,31 +583,80 @@ struct LearnView: View {
     var body: some View {
         Form {
             Section {
-                Text(s.tr("1. Hold telefonen væk fra mønten. Tryk Start og bevæg telefonen roligt rundt i 3 sekunder, som når du optræder.",
-                          "1. Keep the phone away from the coin. Tap Start and move the phone around gently for 3 seconds, like when performing."))
-                Button(engine.learnRunning && engine.learnStep == .noise ? s.tr("Måler …", "Measuring …") : s.tr("Start uden mønt", "Start without coin")) {
-                    engine.learn(.noise)
-                }
-                .disabled(engine.learnRunning)
-                if let n = engine.learnNoise { Text(s.tr("Uden mønt: \(Int(n)) µT", "Without coin: \(Int(n)) µT")).foregroundStyle(.secondary) }
+                Text(s.tr("Appen lærer forskellen på \"ingen magnet\" og \"magnet\". Det virker med alle magnetiske ting – mønter, ringe, kort osv.",
+                          "The app learns the difference between \"no magnet\" and \"magnet\". Works with any magnetic object – coins, rings, cards etc."))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4))
             }
-            Section {
-                Text(s.tr("2. Læg mønten i en lukket hånd. Tryk Start, og før toppen af telefonen hen over hånden i 3 sekunder.",
-                          "2. Put the coin in a closed hand. Tap Start and move the top of the phone over the hand for 3 seconds."))
-                Button(engine.learnRunning && engine.learnStep == .coin ? s.tr("Måler …", "Measuring …") : s.tr("Start med mønt", "Start with coin")) {
-                    engine.learn(.coin)
-                }
-                .disabled(engine.learnRunning || engine.learnNoise == nil)
-                if let c = engine.learnCoin { Text(s.tr("Med mønt: \(Int(c)) µT", "With coin: \(Int(c)) µT")).foregroundStyle(.secondary) }
-            }
+
+            step(1,
+                 title: s.tr("Uden magnet", "Without magnet"),
+                 text: s.tr("Læg magneten væk. Tryk Start, og bevæg telefonen roligt rundt i 3 sekunder.",
+                            "Put the magnet away. Tap Start and move the phone around gently for 3 seconds."),
+                 running: engine.learnRunning && engine.learnStep == .noise,
+                 done: engine.learnNoise != nil,
+                 enabled: !engine.learnRunning) { engine.learn(.noise) }
+
+            step(2,
+                 title: s.tr("Med magnet", "With magnet"),
+                 text: s.tr("Hold magneten i en lukket hånd. Tryk Start, og før toppen af telefonen hen over hånden i 3 sekunder.",
+                            "Hold the magnet in a closed hand. Tap Start and move the top of the phone over the hand for 3 seconds."),
+                 running: engine.learnRunning && engine.learnStep == .coin,
+                 done: engine.learnCoin != nil && engine.learnOK == true,
+                 enabled: !engine.learnRunning && engine.learnNoise != nil) { engine.learn(.coin) }
+
             if let m = engine.learnMessage {
-                Section { Text(m).font(.headline) }
+                Section {
+                    Label(m, systemImage: engine.learnOK == true ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .font(.headline)
+                        .foregroundStyle(engine.learnOK == true ? Color.green : Color.orange)
+                }
             }
-            Section {
-                Button(s.tr("Start forfra", "Start over")) { engine.resetLearn() }
+            if engine.learnNoise != nil {
+                Section {
+                    Button(s.tr("Start forfra", "Start over")) { engine.resetLearn() }
+                }
             }
         }
-        .navigationTitle(s.tr("Lær min mønt", "Learn my coin"))
+        .navigationTitle(s.tr("Lær min magnet", "Learn my magnet"))
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear { engine.resetLearn() }
+    }
+
+    private func step(_ n: Int, title: String, text: String, running: Bool, done: Bool, enabled: Bool,
+                      action: @escaping () -> Void) -> some View {
+        Section {
+            HStack(alignment: .top, spacing: 12) {
+                ZStack {
+                    Circle().fill(done ? Color.green : (enabled || running ? Color.sandt : Color(white: 0.3)))
+                    if done {
+                        Image(systemName: "checkmark").font(.system(size: 14, weight: .bold))
+                    } else {
+                        Text("\(n)").font(.system(size: 15, weight: .bold))
+                    }
+                }
+                .foregroundStyle(.white)
+                .frame(width: 30, height: 30)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title).font(.headline)
+                    Text(text).font(.subheadline).foregroundStyle(.secondary)
+                }
+            }
+            .padding(.vertical, 4)
+            Button(action: action) {
+                HStack {
+                    if running { ProgressView().tint(.white) }
+                    Text(running ? s.tr("Måler …", "Measuring …")
+                                 : done ? s.tr("Mål igen", "Measure again") : "Start")
+                        .fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity, minHeight: 34)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(!enabled)
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 12, trailing: 16))
+        }
     }
 }
