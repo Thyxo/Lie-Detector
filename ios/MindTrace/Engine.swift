@@ -124,8 +124,11 @@ final class Engine: ObservableObject {
         startScan()
     }
 
+    /// Tidspunkt for seneste afsløring – så et ekstra tommelfinger-tryk ikke straks går tilbage til start.
+    private var revealedAt = Date.distantPast
+
     /// Volumenknap: op = Sandt, ned = Falsk. Virker på Tænker- og resultatskærmen (kan rettes).
-    private func reveal(_ v: Verdict) {
+    func reveal(_ v: Verdict) {
         guard !panelOpen, settings.mode == .normal else { return }
         switch screen {
         case .start:
@@ -140,12 +143,19 @@ final class Engine: ObservableObject {
             addLog(settings.tr("Rettet til \(settings.word(v))", "Changed to \(settings.word(v))"))
         }
         screen = .result(v)
+        revealedAt = Date()
         if settings.sound { sounds.play(v, volume: settings.soundVolume) }
     }
 
     func tapResult() {
-        guard case .result = screen else { return }
+        guard case .result = screen, Date().timeIntervalSince(revealedAt) > 0.8 else { return }
         screen = .start
+    }
+
+    /// Tryk på Tænker-skærmen (når "Tryk for svar" er slået til): øverste halvdel = Sandt, nederste = Falsk.
+    func tapThinking(upperHalf: Bool) {
+        guard settings.tapReveal, screen == .thinking else { return }
+        reveal(upperHalf ? .sandt : .falsk)
     }
 
     // MARK: Hemmelig tilstand

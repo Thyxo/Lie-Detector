@@ -263,6 +263,20 @@ struct SecretPanel: View {
             .listRowInsets(EdgeInsets())
             .accessibilityIdentifier("modePicker")
 
+            if s.mode == .normal {
+                Toggle(isOn: $s.tapReveal) {
+                    RowLabel(s.tr("Tryk for svar", "Tap to reveal"), icon: "hand.point.up.left.fill", color: .teal,
+                             detail: s.tr("Øverste halvdel = Sandt · nederste = Falsk", "Top half = True · bottom half = False"))
+                }
+                .accessibilityIdentifier("tapRevealToggle")
+                if s.tapReveal {
+                    Toggle(isOn: $s.splitLine) {
+                        RowLabel(s.tr("Vis skillestreg", "Show divider"), icon: "minus", color: .gray,
+                                 detail: s.tr("Svag grå streg i siderne, der viser midten", "Faint grey marks showing the middle"))
+                    }
+                    .accessibilityIdentifier("splitLineToggle")
+                }
+            }
             if s.mode == .hidden {
                 PhotosPicker(selection: $photo, matching: .images) {
                     RowLabel(s.hasBackground ? s.tr("Skift baggrundsbillede", "Change background image")
@@ -289,6 +303,9 @@ struct SecretPanel: View {
             Text(s.mode == .hidden
                  ? s.tr("Hemmelig: skærmen ser sort ud (eller viser dit billede). Tryk for at starte og stoppe – du får kun vibrationen.",
                         "Secret: the screen looks black (or shows your image). Tap to start and stop – you only get the vibration.")
+                 : s.tapReveal
+                 ? s.tr("Normal: tryk på startskærmen. Rør så øverst for Sandt eller nederst for Falsk (volumenknapperne virker stadig).",
+                        "Normal: tap the start screen. Then touch the top for True or the bottom for False (volume buttons still work).")
                  : s.tr("Normal: tryk på startskærmen. Volumen op = Sandt, volumen ned = Falsk.",
                         "Normal: tap the start screen. Volume up = True, volume down = False."))
         }

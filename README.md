@@ -18,6 +18,7 @@ SideStore → **Sources** → **+** → indsæt URL → MindTrace → **Install*
 2. Skærmen viser **Tænker** (bliver stående). Før **toppen** af telefonen hen over hånden (1–3 cm).
 3. Telefonen vibrerer hvert sekund: **2 bump = mønt**, **1 bump = ingen mønt** (1 lang = ingen sensordata). Har den først fundet mønten, bliver det ved med at være 2 bump.
 4. Tilskueren svarer. Du trykker **volumen op = Sandt**, **volumen ned = Falsk** → resultat + lyd. Forkert knap? Tryk den anden.
+   - **Tryk for svar** (Menu → Visning): rør i stedet med tommelfingeren på **øverste halvdel = Sandt** eller **nederste halvdel = Falsk**. Valgfri svag grå streg i siderne viser midten. Volumenknapperne virker stadig.
 5. Tryk på resultatet → tilbage til start.
 
 | Mønt? | Tilskueren siger | Du trykker |

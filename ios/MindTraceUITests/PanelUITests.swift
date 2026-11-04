@@ -8,7 +8,7 @@ final class PanelUITests: XCTestCase {
     override func setUp() {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-fakeSensor", "-language", "en", "-mode", "normal", "-threshold2", "40", "-hasBackground", "NO", "-sound", "YES", "-soundVolume", "1", "-vibEnabled", "YES", "-vibStrength", "1", "-coinDot", "NO", "-customTrue", "", "-customFalse", ""]
+        app.launchArguments = ["-fakeSensor", "-language", "en", "-mode", "normal", "-threshold2", "40", "-hasBackground", "NO", "-sound", "YES", "-soundVolume", "1", "-vibEnabled", "YES", "-vibStrength", "1", "-coinDot", "NO", "-tapReveal", "NO", "-splitLine", "YES", "-customTrue", "", "-customFalse", ""]
         app.launch()
     }
 
@@ -141,5 +141,42 @@ final class PanelUITests: XCTestCase {
         link.tap()
         XCTAssertTrue(app.navigationBars["Learn my magnet"].waitForExistence(timeout: 3), "Lær min magnet åbnede ikke")
         XCTAssertTrue(app.buttons["Start"].firstMatch.exists, "Start-knap mangler")
+    }
+
+    func testTapRevealToggleInMenu() {
+        openPanel()
+        let toggle = app.switches["tapRevealToggle"]
+        scrollTo(toggle)
+        XCTAssertFalse(app.switches["splitLineToggle"].exists)
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        XCTAssertTrue(app.switches["splitLineToggle"].waitForExistence(timeout: 3), "Skillestreg-valget dukkede ikke op")
+    }
+
+    /// Tryk øverst = Sandt, nederst = Falsk.
+    func testTapTopAndBottomReveals() {
+        app.terminate()
+        if let i = app.launchArguments.firstIndex(of: "-tapReveal") { app.launchArguments[i + 1] = "YES" }
+        app.launch()
+        XCTAssertTrue(app.staticTexts["True or false?"].waitForExistence(timeout: 5))
+        let center = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let top = app.coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.25))
+        let bottom = app.coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.8))
+
+        center.tap()
+        XCTAssertTrue(app.staticTexts["Thinking"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.otherElements["splitLine"].exists || app.descendants(matching: .any)["splitLine"].exists, "Skillestregen mangler")
+        top.tap()
+        let result = app.staticTexts["resultText"]
+        XCTAssertTrue(result.waitForExistence(timeout: 3))
+        XCTAssertEqual(result.label, "True", "Øverste halvdel gav ikke Sandt")
+
+        sleep(1)
+        center.tap()   // tilbage til start
+        XCTAssertTrue(app.staticTexts["True or false?"].waitForExistence(timeout: 3))
+        center.tap()
+        XCTAssertTrue(app.staticTexts["Thinking"].waitForExistence(timeout: 3))
+        bottom.tap()
+        XCTAssertTrue(result.waitForExistence(timeout: 3))
+        XCTAssertEqual(result.label, "False", "Nederste halvdel gav ikke Falsk")
     }
 }

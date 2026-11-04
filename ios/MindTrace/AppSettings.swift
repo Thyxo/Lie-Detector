@@ -46,6 +46,10 @@ final class AppSettings: ObservableObject {
     @Published var vibEnabled: Bool { didSet { d.set(vibEnabled, forKey: "vibEnabled") } }
     @Published var vibStrength: Double { didSet { d.set(vibStrength, forKey: "vibStrength") } }
     @Published var coinDot: Bool { didSet { d.set(coinDot, forKey: "coinDot") } }
+    /// Tryk på skærmen i stedet for volumenknapper: øverste halvdel = Sandt, nederste = Falsk.
+    @Published var tapReveal: Bool { didSet { d.set(tapReveal, forKey: "tapReveal") } }
+    /// Svag grå markering af midten på Tænker-skærmen (kun med tapReveal).
+    @Published var splitLine: Bool { didSet { d.set(splitLine, forKey: "splitLine") } }
     @Published var sensorMode: SensorMode { didSet { d.set(sensorMode.rawValue, forKey: "sensorMode") } }
     @Published var mode: AppMode { didSet { d.set(mode.rawValue, forKey: "mode") } }
     @Published var language: AppLanguage { didSet { d.set(language.rawValue, forKey: "language") } }
@@ -62,6 +66,7 @@ final class AppSettings: ObservableObject {
         d.register(defaults: [
             "threshold2": AppSettings.defaultThreshold, "consecutive2": 3, "vibDelay": 1.0,
             "vibEnabled": true, "vibStrength": 1.0, "coinDot": false,
+            "tapReveal": false, "splitLine": true,
             "sensorMode": SensorMode.auto.rawValue, "mode": AppMode.normal.rawValue,
             "language": AppLanguage.en.rawValue, "font": AppFont.bungee.rawValue,
             "sound": true, "soundVolume": 1.0, "hasBackground": false,
@@ -73,6 +78,8 @@ final class AppSettings: ObservableObject {
         vibEnabled = d.bool(forKey: "vibEnabled")
         vibStrength = min(1, max(0.1, d.double(forKey: "vibStrength")))
         coinDot = d.bool(forKey: "coinDot")
+        tapReveal = d.bool(forKey: "tapReveal")
+        splitLine = d.bool(forKey: "splitLine")
         sensorMode = SensorMode(rawValue: d.string(forKey: "sensorMode") ?? "") ?? .auto
         mode = AppMode(rawValue: d.string(forKey: "mode") ?? "") ?? .normal
         language = AppLanguage(rawValue: d.string(forKey: "language") ?? "") ?? .en

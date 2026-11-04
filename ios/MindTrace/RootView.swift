@@ -79,6 +79,10 @@ struct RootView: View {
     }
 
     private func secretTap() {
+        // Med "Tryk for svar" er hjørnet en del af den øverste halvdel (= Sandt) på Tænker-skærmen.
+        if settings.mode == .normal && engine.screen == .thinking && settings.tapReveal {
+            engine.tapThinking(upperHalf: true)
+        }
         let now = Date()
         secretTaps = secretTaps.filter { now.timeIntervalSince($0) < 2.5 } + [now]
         if secretTaps.count >= 5 {
@@ -123,12 +127,40 @@ struct StartScreen: View {
 }
 
 struct ThinkingScreen: View {
+    @EnvironmentObject var engine: Engine
     @EnvironmentObject var settings: AppSettings
     @State private var pulse = false
 
     var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                Color.black
+                content
+                if settings.tapReveal && settings.splitLine { divider }
+            }
+            .contentShape(Rectangle())
+            .onTapGesture(coordinateSpace: .local) { p in
+                engine.tapThinking(upperHalf: p.y < geo.size.height / 2)
+            }
+        }
+        .onAppear { pulse = true }
+    }
+
+    /// Svag grå streg i hver side, der viser midten (skillet mellem Sandt og Falsk).
+    private var divider: some View {
+        HStack {
+            Capsule().frame(width: 26, height: 2)
+            Spacer()
+            Capsule().frame(width: 26, height: 2)
+        }
+        .foregroundStyle(Color(white: 0.2))
+        .allowsHitTesting(false)
+        .accessibilityElement()
+        .accessibilityIdentifier("splitLine")
+    }
+
+    private var content: some View {
         ZStack {
-            Color.black
             VStack(spacing: 28) {
                 BigWord(text: settings.tr("Tænker", "Thinking"), size: 58)
                 Circle()
@@ -139,7 +171,6 @@ struct ThinkingScreen: View {
                     .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: pulse)
             }
         }
-        .onAppear { pulse = true }
     }
 }
 
