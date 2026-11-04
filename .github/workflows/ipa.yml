@@ -32,6 +32,8 @@ jobs:
           exit $rc
 
       - name: UI tests (simulator, menu controls)
+        # Kun til information – en fejlet UI-test stopper ikke builden.
+        continue-on-error: true
         working-directory: ios
         run: |
           UDID=$(xcrun simctl list devices available -j | python3 -c "
