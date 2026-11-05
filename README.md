@@ -4,7 +4,7 @@ An iPhone app (SwiftUI) for close-up mentalism. The spectator gets a magnetic ob
 
 **The question:** "Do you have the magnet in your hand?" The spectator answers yes or no. You move the phone over their hand and it **secretly vibrates in your hand** if the magnet is there. You work out whether they told the truth and reveal it in secret – the screen shows **True** or **False** with a sound.
 
-**Credits:** the original idea behind MindTrace is a digital lie-detector by [Hector Mancha](https://hectormancha.com/hector-mancha-english/). Want to thank him? Send a Steam digital gift card to the Steam account **hdemancha1**. The iPhone version has been redesigned and improved by Daniel Tollam.
+**Credits:** the original idea behind MindTrace is a digital lie-detector by [Hector Mancha](https://hectormancha.com/hector-mancha-english/). Want to thank him? Send a Steam digital gift card to the Steam account **hdemancha1**. The iPhone version has been redesigned and improved by Daniel Tollan – contact: drytollan@gmail.com.
 
 🌐 **Website:** https://thyxo.github.io/Lie-Detector/
 
