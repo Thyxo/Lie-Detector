@@ -4,6 +4,9 @@ An iPhone app (SwiftUI) for close-up mentalism. The spectator gets a magnetic ob
 
 **The question:** "Do you have the magnet in your hand?" The spectator answers yes or no. You move the phone over their hand and it **secretly vibrates in your hand** if the magnet is there. You work out whether they told the truth and reveal it in secret – the screen shows **True** or **False** with a sound.
 
+**Credits:** based on the original idea by **Hector Mancha**. iPhone version by **Daniel**.
+Want to support Hector? Send a Steam digital gift card to the Steam account **hdemancha1**.
+
 🌐 **Website:** https://thyxo.github.io/Lie-Detector/
 
 ---
