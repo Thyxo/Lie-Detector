@@ -1,74 +1,87 @@
-# MindTrace – løgnedetektor med magnet
+# MindTrace – the magnet lie detector
 
-iPhone-app (SwiftUI) til close-up-magi. Tilskueren får en magnetisk mønt (med magnet i), tager hænderne om ryggen og gemmer den i hånden – eller ikke.
+An iPhone app (SwiftUI) for close-up mentalism. The spectator gets a magnetic object (e.g. a coin with a magnet inside), puts their hands behind their back and hides it in one hand – or not.
 
-**Spørgsmålet:** "Har du mønten i hånden?" Tilskueren svarer ja eller nej. Telefonen føres hen over hånden og **vibrerer i din hånd**, om mønten er der. Du regner selv ud, om svaret var sandt, og trykker i det skjulte – skærmen viser **Sandt** eller **Falsk** med lyd.
+**The question:** "Do you have the magnet in your hand?" The spectator answers yes or no. You move the phone over their hand and it **secretly vibrates in your hand** if the magnet is there. You work out whether they told the truth and reveal it in secret – the screen shows **True** or **False** with a sound.
+
+🌐 **Website:** https://thyxo.github.io/Lie-Detector/
 
 ---
 
-## 1. Installér (SideStore)
-Kilde-URL:
-```
-https://raw.githubusercontent.com/Thyxo/Lie-Detector/main/sidestore/source.json
-```
-SideStore → **Sources** → **+** → indsæt URL → MindTrace → **Install**. Nye versioner kommer som opdateringer. Virker også i AltStore. IPA'er ligger også under *Releases*.
+## 1. Install
+MindTrace is not on the App Store. Install it from a computer with **[iLoader](https://iloader.app)** – free, a normal Apple ID is enough.
 
-## 2. Forløb (normal tilstand)
-1. Startskærm ("Sandt eller falsk?") → **tryk**.
-2. Skærmen viser **Tænker** (bliver stående). Før **toppen** af telefonen hen over hånden (1–3 cm).
-3. Telefonen vibrerer hvert sekund: **2 bump = mønt**, **1 bump = ingen mønt** (1 lang = ingen sensordata). Har den først fundet mønten, bliver det ved med at være 2 bump.
-4. Tilskueren svarer. Du trykker **volumen op = Sandt**, **volumen ned = Falsk** → resultat + lyd. Forkert knap? Tryk den anden.
-   - **Tryk for svar** (Menu → Visning): rør i stedet med tommelfingeren på **øverste halvdel = Sandt** eller **nederste halvdel = Falsk**. Valgfri svag grå streg i siderne viser midten. Volumenknapperne virker stadig.
-5. Tryk på resultatet → tilbage til start.
+1. Download iLoader from **https://iloader.app** (Mac, Windows, Linux).
+2. Connect the iPhone with a cable, tap **Trust**, and sign in with your Apple ID in iLoader.
+3. Install the IPA: **https://github.com/Thyxo/Lie-Detector/releases/latest/download/MindTrace.ipa**
+4. **Or get auto-updates:** install SideStore with iLoader, then add this source in SideStore → **Sources** → **+**:
+   ```
+   https://raw.githubusercontent.com/Thyxo/Lie-Detector/main/sidestore/source.json
+   ```
+   New versions arrive as updates. Also works in AltStore.
 
-| Mønt? | Tilskueren siger | Du trykker |
+First launch: turn on **Settings → Privacy & Security → Developer Mode**. With a free Apple ID, apps must be refreshed every 7 days (SideStore can do it for you).
+
+## 2. Routine (Normal mode)
+1. Start screen ("True or false?") → **tap**.
+2. The screen shows **Thinking** (it stays). Move the **top** of the phone over the hand (1–3 cm).
+3. The phone vibrates every second: **2 bumps = magnet**, **1 bump = no magnet** (1 long = no sensor data). Once it has found the magnet, it stays at 2 bumps.
+4. The spectator answers. Reveal the result:
+   - **Volume buttons:** **volume up = True**, **volume down = False**. Wrong button? Press the other one.
+   - **Tap to reveal** (Menu → Display): touch the **top half = True** or the **bottom half = False** with your thumb. An optional faint grey mark on each side shows the middle. The volume buttons still work.
+5. Tap the result → back to the start screen.
+
+| Magnet? | Spectator says | You reveal |
 |---|---|---|
-| 2 bump (mønt) | "Ja" | Op → **Sandt** |
-| 2 bump (mønt) | "Nej" | Ned → **Falsk** |
-| 1 bump (ingen) | "Ja" | Ned → **Falsk** |
-| 1 bump (ingen) | "Nej" | Op → **Sandt** |
+| 2 bumps (magnet) | "Yes" | Up / top → **True** |
+| 2 bumps (magnet) | "No" | Down / bottom → **False** |
+| 1 bump (none) | "Yes" | Down / bottom → **False** |
+| 1 bump (none) | "No" | Up / top → **True** |
 
-## 3. Hemmelig tilstand
-Sort skærm eller dit eget billede (fx skærmbillede af hjemmeskærmen). Tryk → samme vibration (2 = mønt, 1 = ingen) hvert sekund → tryk igen for at stoppe. Ingen Sandt/Falsk-skærm.
+## 3. Secret mode
+A black screen or your own image (e.g. a screenshot of your home screen). Tap → the same vibration (2 = magnet, 1 = none) every second → tap again to stop. No True/False screen.
 
-## 4. Hemmelig menu
-**Åbn:** 5 hurtige tryk i øverste højre hjørne. **Færdig** lukker (første sekund ignoreres).
+## 4. Secret menu
+**Open:** 5 quick taps in the top-right corner (from the start screen). **Done** closes it (taps in the first second are ignored).
 
+The menu is ordered by what you use most:
 
-Menuen er sorteret efter, hvad man bruger mest:
+1. **Sound** – on/off, volume, play True/False.
+2. **Vibration** – on/off, strength, when it starts, test 2/1 bumps.
+3. **Magnet** – **Learn my magnet** (recommended, works with any magnetic object), live meter, sensitivity (default **40 µT**), secret grey dot (top left = magnet found).
+4. **Text on screen** – your own True/False words with a preview and suggestions.
+5. **Display** – Normal/Secret, **Tap to reveal** + divider (Normal), background image (Secret).
+6. **Appearance** – language (English/Danish), font, app icon.
+7. **Advanced** – for troubleshooting only.
 
-1. **Lyd** – til/fra, lydstyrke, afspil Sandt/Falsk.
-2. **Vibration** – til/fra, styrke, hvornår den starter, test 2/1 bump.
-3. **Magnet** – **Lær min magnet** (anbefalet, virker med alle magnetiske ting), live-bjælke, følsomhed (standard **40 µT**), hemmelig grå prik.
-4. **Tekst på skærmen** – egne Sandt/Falsk-tekster med forhåndsvisning og forslag.
-5. **Visning** – Normal/Hemmelig (+ baggrundsbillede i Hemmelig).
-6. **Udseende** – sprog, skrifttype, app-ikon.
-7. **Avanceret** – kun til fejlsøgning.
+Every new guess resets the reading and takes a fresh baseline (~0.3 s after the tap). "Learn my magnet" is kept.
 
-Hvert nyt gæt nulstiller målingen og tager en frisk grundmåling (~0,3 s efter trykket).
+## 5. How detection works
+- Raw magnetometer (100 Hz) + the phone's orientation. The field is converted to room axes, so **turning the phone does not trigger it** – only a nearby magnet does.
+- The phone's own magnetism (bias) is learned continuously and **frozen while scanning**, so iOS calibration can't "eat" the magnet.
+- Signal = largest deviation from the baseline, held for 3 readings in a row (single spikes are ignored) → compared with the threshold.
+- The logic is covered by automated tests (`ios/MindTraceTests`) that run on GitHub before every build.
 
-## 5. Sådan virker detektionen
-- Rå magnetometer (100 Hz) + telefonens orientering. Feltet regnes om til rummets akser, så **drejning af telefonen ikke giver udslag** – kun en magnet tæt på gør.
-- Telefonens egen magnetisme (bias) læres løbende og **fryses under scanning**, så iOS' kalibrering ikke kan "æde" magneten.
-- Udslag = største afvigelse fra grundmålingen, holdt i 3 målinger i træk (enkelt-spikes ignoreres) → sammenlignes med tærsklen.
-- Logikken er dækket af automatiske tests (`ios/MindTraceTests`), som kører på GitHub før hver build.
-
-## 6. Projekt
+## 6. Project
 ```
-ios/project.yml             XcodeGen (app + logik-tests)
-ios/MindTrace/              App (SwiftUI)
-  Detector.swift, Vec3.swift  Detektion (ren logik, testet)
-  MagnetSensor.swift          Core Motion
-  Engine.swift                Forløb, afgørelse, lær-min-magnet, vibration
-  RootView.swift              Skærme
-  SecretPanel.swift           Hemmelig menu
-  Resources/Fonts, Sounds     Skrifter (OFL/Apache) og lyde
-ios/MindTraceTests/         Tests
-.github/workflows/ipa.yml   Test → build → release → SideStore-kilde
-demo/                       Klikbar web-demo af udseendet
+ios/project.yml               XcodeGen (app + tests)
+ios/MindTrace/                App (SwiftUI)
+  Detector.swift, Vec3.swift    Detection (pure logic, tested)
+  MagnetSensor.swift            Core Motion
+  Engine.swift                  Flow, reveal, learn my magnet, vibration
+  RootView.swift                Screens (incl. tap to reveal)
+  SecretPanel.swift             Secret menu
+  Resources/Fonts, Sounds       Fonts (OFL/Apache) and sounds
+ios/MindTraceTests/           Logic tests (block the build if they fail)
+ios/MindTraceUITests/         UI tests on a simulator (informational, never block the build)
+site/                         Website (landing page)
+.github/workflows/ipa.yml     Test → build → release → SideStore source
+.github/workflows/pages.yml   Publishes site/ to GitHub Pages
+demo/                         Clickable web demo of the look
 ```
-Push til `dev` = test + build (ingen release). Push til `main` = release + ny SideStore-version.
+Push to `dev` = test + build (no release). Push to `main` = release + new SideStore version. Changes in `site/` on `main` update the website automatically.
 
-## 7. Kendt / test på telefonen
-- Lyden spiller også med lydløs-knappen slået til. Volumen nulstilles til 75 % for at kunne mærke knaptryk.
-- Lydene er hentet fra myinstants.com (brugeruploadede) – tjek selv rettigheder til offentlige shows.
+## 7. Known / test on the phone
+- Sound also plays with the silent switch on. Volume is reset to 75 % so button presses can be detected.
+- The sounds are from myinstants.com (user uploads) – check the rights yourself for public shows.
+- UI tests run in a simulator, which can't press the volume buttons or sense a magnet – always test on a real iPhone.
